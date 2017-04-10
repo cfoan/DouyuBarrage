@@ -20,6 +20,10 @@ namespace DouyuDanmu.Net
 
     public class DanmuClient
     {
+        public event Action<object> OnNewData;
+        public event Action<DanmuClient> OnConnected;
+        public event Action<DanmuClient> OnDisconnected;
+
         private const int REQUEST_MESSAGETYPE= 689;
         private const int RESPONSE_MESSAGETYPE= 690;
         private const int BUFFER_SIZE = 8192;
@@ -32,10 +36,6 @@ namespace DouyuDanmu.Net
         private Socket socket;
         private Timer timer;
         private volatile bool isConnected;
-
-        public event Action<object> OnNewBulletScreen;
-        public event Action<DanmuClient> OnConnected;
-        public event Action<DanmuClient> OnDisconnected;
 
         public DanmuClient()
         {
@@ -210,7 +210,7 @@ namespace DouyuDanmu.Net
                         bytesUnhandledLastTime = total - handledBytes;
                         var writeIndex = bytesUnhandledLastTime;
                         var countCanWrite = buffer.Length - writeIndex;
-                        OnNewBulletScreen?.Invoke(pkts);
+                        OnNewData?.Invoke(pkts);
                         socket.BeginReceive(buffer, writeIndex, countCanWrite, SocketFlags.None, ReceiveComplted, socket);
                     }
                 }

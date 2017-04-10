@@ -19,7 +19,7 @@ namespace DouyuDanmu
                 return;
             }
             var client = new DanmuClient();
-            client.OnNewBulletScreen += Client_OnNewBulletScreen;
+            client.OnNewData += Client_OnNewBulletScreen;
             if (client.Start())
             {
                 client.EnterRoom(roomId);

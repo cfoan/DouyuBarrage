@@ -45,6 +45,7 @@
   <ItemGroup>
     <Compile Include="Messages\AbstractDouyuMessage.cs" />
     <Compile Include="Messages\Danmu.cs" />
+    <Compile Include="Messages\DouyuMessageParser.cs" />
     <Compile Include="Messages\Gift.cs" />
     <Compile Include="Messages\Keepalive.cs" />
     <Compile Include="Messages\SuperDanmu.cs" />
