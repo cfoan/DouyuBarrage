@@ -5,7 +5,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Timers;
 
-namespace DouyuDanmu
+namespace DouyuDanmu.Net
 {
     internal class AsyncState
     {

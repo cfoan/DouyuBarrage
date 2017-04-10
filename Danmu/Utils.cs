@@ -6,12 +6,21 @@ namespace DouyuDanmu
 {
     public class Utils
     {
+        /// <summary>
+        /// 获取unix时间
+        /// </summary>
+        /// <returns></returns>
         public static long CurrentTimestampUtc()
         {
             var epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
             return Convert.ToInt64((DateTime.UtcNow - epoch).TotalMilliseconds);
         }
 
+        /// <summary>
+        /// douyu房间链接获取roomid
+        /// </summary>
+        /// <param name="uri"></param>
+        /// <returns></returns>
         public static string GetRoomId(Uri uri)
         {
             WebRequest request = WebRequest.Create(uri);

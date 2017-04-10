@@ -14,7 +14,7 @@ namespace DouyuDanmu
         public string DanmuId { get; set; }
 
         /// <summary>
-        /// 消息
+        /// 消息类型
         /// </summary>
         public string Type { get; set; }
 
@@ -22,7 +22,7 @@ namespace DouyuDanmu
         /// 房间号
         /// </summary>
         public string RoomId { get; set; }
-        
+
         /// <summary>
         /// 用户id
         /// </summary>
@@ -66,7 +66,7 @@ namespace DouyuDanmu
     public class DanmuParser
     {
         private static string logPath = AppDomain.CurrentDomain.BaseDirectory + "\\log.txt";
-        static object locker = new object();
+        private static object locker = new object();
 
         public const string KEY_CID = "cid";
         public const string KEY_TYPE = "type";
@@ -76,7 +76,7 @@ namespace DouyuDanmu
         public const string KEY_TXT = "txt";
         public const string KEY_ICON = "ic";
         public const string KEY_LEVEL = "level";
-        public const string KEY_GIFT_ID= "gfid";
+        public const string KEY_GIFT_ID = "gfid";
         public const string KEY_HITS = "hits";
 
         public static DanmuMessage Parse(string data)
@@ -97,9 +97,9 @@ namespace DouyuDanmu
             msg.Uid = dict.ContainsKey(KEY_UID) ? dict[KEY_UID] : "";
             msg.RoomId = dict.ContainsKey(KEY_ROOM_ID) ? dict[KEY_ROOM_ID] : "";
             msg.Level = dict.ContainsKey(KEY_LEVEL) ? dict[KEY_LEVEL] : "";
-            msg.GiftId= dict.ContainsKey(KEY_GIFT_ID) ? dict[KEY_GIFT_ID] : "";
+            msg.GiftId = dict.ContainsKey(KEY_GIFT_ID) ? dict[KEY_GIFT_ID] : "";
             msg.Hits = dict.ContainsKey(KEY_HITS) ? dict[KEY_HITS] : "";
-            msg.DanmuId= dict.ContainsKey(KEY_CID) ? dict[KEY_CID] : "";
+            msg.DanmuId = dict.ContainsKey(KEY_CID) ? dict[KEY_CID] : "";
             msg.Raw = data;
             return msg;
         }
@@ -153,18 +153,23 @@ namespace DouyuDanmu
             switch (message.Type)
             {
                 case "chatmsg":
-                    return string.Format("[弹幕]{0}：{1}",message.NickName, message.Content);
+                    return string.Format("[弹幕]{0}：{1}", message.NickName, message.Content);
                 case "dgb":
                     //if (GiftName(message.GiftId) == "unknown")
                     //{
                     //    Dumps(message.Raw);
                     //}
-                    var giftInfo=string.Format("【{0}】 {1}", GiftName(message.GiftId), !string.IsNullOrWhiteSpace(message.Hits) ? string.Format("{0}连击", message.Hits) : "");
+                    var giftInfo = string.Format("【{0}】 {1}", GiftName(message.GiftId), !string.IsNullOrWhiteSpace(message.Hits) ? string.Format("{0}连击", message.Hits) : "");
                     return string.Format("[礼物]来自{0} {1}", message.NickName, giftInfo);
                 default:
                     return "";
             }
         }
 
+    }
+
+    public abstract class DouyuMessageParser<TDouyuMessage>
+    {
+        public abstract TDouyuMessage ParseString(string data);
     }
 }

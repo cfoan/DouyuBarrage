@@ -1,0 +1,50 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace DouyuDanmu.Messages
+{
+    /// <summary>
+    /// 超级弹幕消息
+    /// </summary>
+    public class SuperDanmu : AbstractDouyuMessage
+    {
+        /// <summary>
+        /// 房间 id
+        /// </summary>
+        public string rid { get; set; }
+
+        /// <summary>
+        /// 弹幕分组 id
+        /// </summary>
+        public string gid { get; set; }
+
+        /// <summary>
+        /// 超级弹幕 id
+        /// </summary>
+        public string sdid { get; set; }
+
+        /// <summary>
+        /// 跳转房间 id
+        /// </summary>
+        public string trid { get; set; }
+
+        /// <summary>
+        /// 超级弹幕的内容
+        /// </summary>
+        public string content { get; set; }
+
+        /// <summary>
+        /// 表示为“超级弹幕”消息，固定为 ssd
+        /// </summary>
+        public override string type
+        {
+            get
+            {
+                return "ssd";
+            }
+        }
+    }
+}
