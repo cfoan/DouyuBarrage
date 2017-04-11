@@ -11,36 +11,36 @@ namespace DouyuDanmu
     {
         static void Main(string[] args)
         {
-            //White55开解说
-            var roomId=Utils.GetRoomId(new Uri("https://www.douyu.com/wt55kai"));
+            var roomId=Utils.GetRoomId(new Uri("https://www.douyu.com/chenyifaer"));
             if (string.IsNullOrWhiteSpace(roomId))
             {
                 Console.WriteLine("获取房间号失败");
                 return;
             }
-            var client = new DanmuClient();
-            client.OnNewData += Client_OnNewBulletScreen;
-            if (client.Start())
-            {
-                client.EnterRoom(roomId);
-            }
+            new BulletScreenClient().Start(HandleBulletScreenClientEvent).EnterRoom(roomId);
+
             Console.ReadKey();
 
         }
 
-        private static void Client_OnNewBulletScreen(object obj)
+        private static void HandleBulletScreenClientEvent(object sender, BulletScreenEventArgs e)
         {
-            var pkts = obj as List<Packet>;
-            pkts.ForEach((pkt) =>
+            if (e.Action == ActionType.PacketArrive)
             {
-                var msg = DanmuParser.Parse(pkt.Data);
-                var danmu = DanmuParser.ToString(msg);
-                if (danmu != null && danmu.Length > 0)
+                e.PacketsReceived?.ForEach((pkt) =>
                 {
-                    DanmuParser.Dumps(danmu);
-                    Console.WriteLine(danmu);
-                }
-            });
+                    if (pkt.Data.IndexOf("chatmsg") == -1)
+                    {
+                        var msg = DanmuParser.Parse(pkt.Data);
+                        var danmu = DanmuParser.ToString(msg);
+                        if (danmu != null && danmu.Length > 0)
+                        {
+                            //DanmuParser.Dumps(danmu);
+                            Console.WriteLine(danmu);
+                        }
+                    }
+                });
+            }
         }
     }
 }

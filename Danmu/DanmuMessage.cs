@@ -133,6 +133,8 @@ namespace DouyuDanmu
                     return "飞机";
                 case "196":
                     return "火箭";
+                case "268":
+                    return "发财";
                 case "380":
                     return "好人卡";
                 case "479":
@@ -143,6 +145,12 @@ namespace DouyuDanmu
                     return "稳";
                 case "530":
                     return "天秀";
+                case "712":
+                    return "棒棒哒";
+                case "714":
+                    return "怂";
+                case "713":
+                    return "辣眼睛";
                 default:
                     return "unknown";
             }
@@ -155,10 +163,10 @@ namespace DouyuDanmu
                 case "chatmsg":
                     return string.Format("[弹幕]{0}：{1}", message.NickName, message.Content);
                 case "dgb":
-                    //if (GiftName(message.GiftId) == "unknown")
-                    //{
-                    //    Dumps(message.Raw);
-                    //}
+                    if (GiftName(message.GiftId) == "unknown")
+                    {
+                        Dumps(message.Raw);
+                    }
                     var giftInfo = string.Format("【{0}】 {1}", GiftName(message.GiftId), !string.IsNullOrWhiteSpace(message.Hits) ? string.Format("{0}连击", message.Hits) : "");
                     return string.Format("[礼物]来自{0} {1}", message.NickName, giftInfo);
                 default:

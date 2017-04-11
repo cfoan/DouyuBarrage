@@ -1,8 +1,12 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
+using System.Linq;
+using System.Threading.Tasks;
 using System.Timers;
 
 namespace DouyuDanmu.Net
@@ -18,39 +22,54 @@ namespace DouyuDanmu.Net
         public int Count { get; set; }
     }
 
-    public class DanmuClient
+    public enum ActionType
     {
-        public event Action<object> OnNewData;
-        public event Action<DanmuClient> OnConnected;
-        public event Action<DanmuClient> OnDisconnected;
+        Connect,Disconnect,PacketArrive
+    }
 
-        private const int REQUEST_MESSAGETYPE= 689;
-        private const int RESPONSE_MESSAGETYPE= 690;
-        private const int BUFFER_SIZE = 8192;
-        private const int LOGIN_TIMEOUT = 2000;
-        private const int CONNECT_TIMEOUT = 2000;
-        private const string DouyuDanmuDomain = "danmu.douyutv.com";
+    public class BulletScreenEventArgs : EventArgs
+    {
+        public ActionType Action { get; set; }
+
+        public List<Packet> PacketsReceived { get; set; }
+
+        public object UserToken { get; set; }
+    }
+
+    public class BulletScreenClient
+    {
+        public event EventHandler<BulletScreenEventArgs> OnClientEvent;
+
+        private const int RequestMessageType= 689;
+        private const int ResponseMessageType= 690;
+        private const int ReceiveBufferSize = 8192;
+        private const int SendBufferSize = 4096;
+        private const int LoginTimeout = 2000;
+        private const int ConnectTimeOut = 2000;
+        private const string DouyuDomain = "danmu.douyutv.com";
         private readonly int[] DouyuDanmuPorts = new int[] { 8061, 8062, 12601, 12602 };
         
-        private byte[] buffer;
+        private byte[] receiveBuffer;
         private Socket socket;
-        private Timer timer;
+        private System.Timers.Timer timer;
         private volatile bool isConnected;
+        private volatile bool isLogined;
+        //private ConcurrentQueue<Packet> receivedPackets;
 
-        public DanmuClient()
+        public BulletScreenClient()
         {
-            timer = new Timer();
-            buffer = new byte[BUFFER_SIZE];
+            timer = new System.Timers.Timer();
+            receiveBuffer = new byte[ReceiveBufferSize];
         }
 
-        public bool Start()
+        public BulletScreenClient Start(EventHandler<BulletScreenEventArgs> eventHandler=null)
         {
             Stop();
 
             var ips = new IPAddress[0];
             try
             {
-                ips = Dns.GetHostAddresses(DouyuDanmuDomain);
+                ips = Dns.GetHostAddresses(DouyuDomain);
             }
             catch (Exception ex)
             {
@@ -68,17 +87,19 @@ namespace DouyuDanmu.Net
 
                         var asyncState = tmp.BeginConnect(new IPEndPoint(ip, port), null, null);
 
-                        if (asyncState.AsyncWaitHandle.WaitOne(CONNECT_TIMEOUT, true))
+                        if (asyncState.AsyncWaitHandle.WaitOne(ConnectTimeOut, true))
                         {
                             tmp.EndConnect(asyncState); // checks for exception
 
                             if (isConnected = tmp.Connected)
                             {
                                 socket = tmp;
-                                OnConnected?.Invoke(this);
+                                BulletScreenEventArgs eventArgs = new BulletScreenEventArgs();
+                                eventArgs.Action = ActionType.Connect;
+                                OnClientEvent?.Invoke(this, eventArgs);
                                 break;
                             }
-                            
+
                         }
                         else
                         {
@@ -98,31 +119,32 @@ namespace DouyuDanmu.Net
                 if (isConnected) { break; }
             }
 
+            if (!isConnected) { throw new Exception("Unable to connect to server"); }
 
-            if (isConnected)
-            {
 #if DEBUG
-                Console.WriteLine("已连接到斗鱼弹幕服务器,{0}", socket.RemoteEndPoint.ToString());
+            Console.WriteLine("已连接到斗鱼弹幕服务器,{0}", socket.RemoteEndPoint.ToString());
 #endif
-                socket.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None, ReceiveComplted, socket);
+            socket.BeginReceive(receiveBuffer, 0, receiveBuffer.Length, SocketFlags.None, ReceiveComplted, socket);
+            OnClientEvent += eventHandler;
+            timer.Elapsed += Heatbeat;
+            timer.Interval = 45 * 1000;
+            timer.Start();
 
-                timer.Elapsed += Heatbeat;
-                timer.Interval = 45 * 1000;
-                timer.Start();
+            Login();
 
-                Login();
-            }
-            return isConnected;
+
+            return this;
         }
 
         public void EnterRoom(string roomId)
         {
-            Console.WriteLine("enter room {0}...", roomId);
-            Packet pkt = new Packet();
-            pkt.Data = string.Format("type@=joingroup/rid@={0}/gid@=-9999/", roomId);
-            pkt.Type = REQUEST_MESSAGETYPE;
-            var data = AssembleRequest(pkt);
-            SendPacket(data.Item1, 0, data.Item2);
+#if DEBUG
+            Console.WriteLine("try enter room {0}...", roomId);
+#endif
+            Packet packet = new Packet();
+            packet.Data = string.Format("type@=joingroup/rid@={0}/gid@=-9999/", roomId);
+            packet.Type = RequestMessageType;
+            SendPacketInternal(packet);
         }
 
         public void Stop()
@@ -144,28 +166,37 @@ namespace DouyuDanmu.Net
             if (isConnected)
             {
                 isConnected = false;
-                OnDisconnected?.Invoke(this);
+                isLogined = false;
+                BulletScreenEventArgs eventArgs = new BulletScreenEventArgs();
+                eventArgs.Action = ActionType.Disconnect;
+                OnClientEvent?.Invoke(this, eventArgs);
             }
             timer.Stop();
             timer.Elapsed -= Heatbeat;
         }
 
+        private TaskCompletionSource<object> login;
         private void Login()
         {
+            login = new TaskCompletionSource<object>();
             Packet packet = new Packet();
             packet.Data = "type@=loginreq/";
-            packet.Type = REQUEST_MESSAGETYPE;
-            var data = AssembleRequest(packet);
-            SendPacket(data.Item1, 0, data.Item2);
+            packet.Type = RequestMessageType;
+            SendPacketInternal(packet);
+            var loginSuccess=(bool)WaitImpl(login.Task, LoginTimeout);
+            if (!loginSuccess)
+            {
+                Stop();
+                throw new Exception("login fail");
+            }
         }
 
         private void KeepAlive()
         {
             Packet pkt = new Packet();
             pkt.Data = string.Format("type@=keeplive/tick@={0}/", Utils.CurrentTimestampUtc() / 1000);//取的秒数
-            pkt.Type = REQUEST_MESSAGETYPE;
-            var data = AssembleRequest(pkt);
-            SendPacket(data.Item1, 0, data.Item2);
+            pkt.Type = RequestMessageType;
+            SendPacketInternal(pkt);
         }
 
         private void Heatbeat(object sender, ElapsedEventArgs e)
@@ -174,6 +205,50 @@ namespace DouyuDanmu.Net
             {
                 KeepAlive();
             }
+        }
+
+        private void OnPacketsReceived(List<Packet> packets)
+        {
+            if (packets.Count == 0) { return; }
+            if (!isLogined)
+            {
+                var loginSuccess = packets[0].Data.IndexOf("loginres") != -1;
+                login.TrySetResult(loginSuccess);
+                if (!loginSuccess) { return; }
+                isLogined = true;
+                packets.RemoveAt(0);
+            }
+            BulletScreenEventArgs eventArgs = new BulletScreenEventArgs();
+            eventArgs.Action = ActionType.PacketArrive;
+            eventArgs.PacketsReceived = packets;
+            OnClientEvent?.Invoke(this, eventArgs);
+        }
+
+        internal static object WaitImpl(Task<object> task, int timeout)
+        {
+            if (task.IsFaulted)
+            {
+                Exception ex = task.Exception;
+                var aex = ex as AggregateException;
+                if (aex != null && aex.InnerExceptions.Count == 1)
+                {
+                    ex = aex.InnerExceptions[0];
+                }
+                throw ex;
+            }
+            if (!task.IsCompleted)
+            {
+                try
+                {
+                    if (!task.Wait(timeout)) throw new TimeoutException();
+                }
+                catch (AggregateException aex)
+                {
+                    if (aex.InnerExceptions.Count == 1) throw aex.InnerExceptions[0];
+                    throw;
+                }
+            }
+            return task.Result;
         }
 
         #region transfer,assemble and parse
@@ -187,31 +262,29 @@ namespace DouyuDanmu.Net
                 var bytesTransferredThisTime = socket.EndReceive(ia);
                 if (bytesTransferredThisTime > 0)
                 {
-                    if (bytesTransferredThisTime == buffer.Length || bytesTransferredThisTime + bytesUnhandledLastTime == buffer.Length)//buffer may be not big enough
+                    // buffer not big ennough
+                    if (bytesTransferredThisTime == receiveBuffer.Length || bytesTransferredThisTime + bytesUnhandledLastTime == receiveBuffer.Length)//buffer may be not big enough
                     {
-#if DEBUG
-                        Console.WriteLine("buffer not big ennough");
-#endif
-                        var oldBufferLength = buffer.Length;
+                        var oldBufferLength = receiveBuffer.Length;
                         var newBuffer = new byte[oldBufferLength * 2];
                         var newBufferWriteIndex = bytesTransferredThisTime + bytesUnhandledLastTime;
-                        Buffer.BlockCopy(buffer, 0, newBuffer, 0, buffer.Length);
-                        buffer = newBuffer;
+                        Buffer.BlockCopy(receiveBuffer, 0, newBuffer, 0, receiveBuffer.Length);
+                        receiveBuffer = newBuffer;
                         var countNewBufferCanWrite = newBuffer.Length - oldBufferLength;
                         bytesUnhandledLastTime = oldBufferLength;
-                        socket.BeginReceive(buffer, newBufferWriteIndex, countNewBufferCanWrite, SocketFlags.None, ReceiveComplted, socket);
+                        socket.BeginReceive(receiveBuffer, newBufferWriteIndex, countNewBufferCanWrite, SocketFlags.None, ReceiveComplted, socket);
                     }
                     else
                     {
                         int handledBytes = 0;
                         var total = bytesTransferredThisTime + bytesUnhandledLastTime;
-                        var pkts = ReadPackets(buffer, 0, total, out handledBytes);
-                        Buffer.BlockCopy(buffer, handledBytes, buffer, 0, total - handledBytes);
+                        var pkts = ReadPackets(receiveBuffer, 0, total, out handledBytes);
+                        Buffer.BlockCopy(receiveBuffer, handledBytes, receiveBuffer, 0, total - handledBytes);
                         bytesUnhandledLastTime = total - handledBytes;
                         var writeIndex = bytesUnhandledLastTime;
-                        var countCanWrite = buffer.Length - writeIndex;
-                        OnNewData?.Invoke(pkts);
-                        socket.BeginReceive(buffer, writeIndex, countCanWrite, SocketFlags.None, ReceiveComplted, socket);
+                        var countCanWrite = receiveBuffer.Length - writeIndex;
+                        OnPacketsReceived(pkts);
+                        socket.BeginReceive(receiveBuffer, writeIndex, countCanWrite, SocketFlags.None, ReceiveComplted, socket);
                     }
                 }
                 else if (bytesTransferredThisTime <= 0)
@@ -236,15 +309,22 @@ namespace DouyuDanmu.Net
             var bytesTransferred = socket.EndSend(ia);
             if (bytesTransferred < state.Count)
             {
-                SendPacket(buffer, bytesTransferred, state.Count - bytesTransferred);
+                DoSend(buffer, bytesTransferred, state.Count - bytesTransferred);
             }
         }
 
-        private void SendPacket(byte[] buffer, int offset, int count)
+        private void SendPacketInternal(Packet packet)
+        {
+            byte[] buffer = new byte[SendBufferSize];
+            var totalBytes = WritePacket(packet, ref buffer, 0, buffer.Length);
+            DoSend(buffer, 0, totalBytes);
+        }
+
+        private void DoSend(byte[] buffer, int offset, int count)
         {
             try
             {
-                socket.BeginSend(buffer, offset, count, SocketFlags.None, SendComplted, new AsyncState() { Socket = socket, Offset = 0, Buffer = buffer, Count = count });
+                socket.BeginSend(buffer, offset, count, SocketFlags.None, SendComplted, new AsyncState() { Socket = socket, Offset = offset, Buffer = buffer, Count = count });
             }
             catch (Exception ex)
             {
@@ -255,30 +335,28 @@ namespace DouyuDanmu.Net
             }
         }
 
-        private Tuple<byte[],int> AssembleRequest(Packet packet)
+        private int WritePacket(Packet packet,ref byte[]buffer,int offset,int count)
         {
-            byte[] buffer = new byte[4096];
-
-            int writeOffset = 0, count = 0;
+            int writeOffset = offset, writeCount = 0;
             writeOffset += 8;
-            count += 8;
+            writeCount += 8;
 
             BitConverter.GetBytes(packet.Type).CopyTo(buffer, writeOffset);
             writeOffset += 4;
-            count += 4;
+            writeCount += 4;
 
             var dataBytes = Encoding.UTF8.GetBytes(packet.Data, 0, packet.Data.Length, buffer, writeOffset);
             writeOffset += dataBytes;
-            count += dataBytes;
+            writeCount += dataBytes;
 
             buffer[writeOffset++] = 0x0;
-            count++;
+            writeCount++;
 
-            packet.LengthA = count - 4;
-            packet.LengthB = count - 4;
+            packet.LengthA = writeCount - 4;
+            packet.LengthB = writeCount - 4;
             BitConverter.GetBytes(packet.LengthA).CopyTo(buffer, 0);
             BitConverter.GetBytes(packet.LengthB).CopyTo(buffer, 4);
-            return new Tuple<byte[], int>(buffer, count);
+            return writeCount;
         }
 
         private List<Packet> ReadPackets(byte[] buffer, int offset, int count, out int handledBytes)
