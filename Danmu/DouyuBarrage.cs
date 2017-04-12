@@ -44,7 +44,7 @@ namespace DouyuDanmu
 
         private Dictionary<object, FastMethodInvoker> invokerMap = new Dictionary<object, FastMethodInvoker>();
 
-        public static DouyuBarrage instance = new DouyuBarrage();
+        private static DouyuBarrage instance = new DouyuBarrage();
 
         public static DouyuBarrage Instance
         {

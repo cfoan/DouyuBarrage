@@ -30,7 +30,7 @@ namespace DouyuDanmu
             {
                 e.PacketsReceived?.ForEach((pkt) =>
                 {
-                    DouyuBarrage.instance.ConsoleLog(pkt.Data);
+                    DouyuBarrage.Instance.ConsoleLog(pkt.Data);
                 });
             }
         }
