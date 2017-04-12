@@ -13,16 +13,13 @@ namespace DouyuDanmu
     {
         static void Main(string[] args)
         {
-            //var roomId=Utils.GetRoomId(new Uri("https://www.douyu.com/chenyifaer"));
-            //if (string.IsNullOrWhiteSpace(roomId))
-            //{
-            //    Console.WriteLine("获取房间号失败");
-            //    return;
-            //}
-            //new BarrageClient().Start(HandleBulletScreenClientEvent).EnterRoom(roomId);
-            DouyuMessage m = new DouyuMessage();
-            m.LoadAllDouyuMessage();
-            m.Parse();
+            var roomId = Utils.GetRoomId(new Uri("https://www.douyu.com/chenyifaer"));
+            if (string.IsNullOrWhiteSpace(roomId))
+            {
+                Console.WriteLine("获取房间号失败");
+                return;
+            }
+            new BarrageClient().Start(HandleBulletScreenClientEvent).EnterRoom(roomId);
             Console.ReadKey();
 
         }
@@ -33,17 +30,7 @@ namespace DouyuDanmu
             {
                 e.PacketsReceived?.ForEach((pkt) =>
                 {
-                    if (pkt.Data.IndexOf("chatmsg") ==1)
-                    {
-                        var msg=BarrageConverter.Default.ParseString(pkt.Data);
-                        //var msg = DanmuParser.Parse(pkt.Data);
-                        var danmu = DouyuMessage.ToString(msg);
-                        if (danmu != null && danmu.Length > 0)
-                        {
-                            //DanmuParser.Dumps(danmu);
-                            Console.WriteLine(danmu);
-                        }
-                    }
+                    DouyuBarrage.instance.ConsoleLog(pkt.Data);
                 });
             }
         }

@@ -31,7 +31,10 @@ namespace DouyuDanmu.Messages
             var properties = typeof(TDouyuMessage).GetProperties();
             Array.ForEach(properties, (property) =>
              {
-                 propertiesMap[property.Name] = property;
+                 if (property.Name != "type")
+                 {
+                     propertiesMap[property.Name] = property;
+                 }
              });
         }
 

@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace DouyuDanmu.Messages
 {
-    public class BarrageConverter : DouyuMessageConverter<Barrage>
+    public class GiftConverter : DouyuMessageConverter<Gift>
     {
-        public override string DumpsString(Barrage douyuMessage)
+        public override string DumpsString(Gift douyuMessage)
         {
             throw new NotImplementedException();
         }

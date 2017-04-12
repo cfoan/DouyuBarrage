@@ -48,11 +48,12 @@
     <Compile Include="Messages\BarrageConverter.cs" />
     <Compile Include="Messages\DouyuMessageConverter.cs" />
     <Compile Include="Messages\Gift.cs" />
+    <Compile Include="Messages\GiftConverter.cs" />
     <Compile Include="Messages\Keepalive.cs" />
     <Compile Include="Messages\SuperBarrage.cs" />
     <Compile Include="Messages\UserEnter.cs" />
     <Compile Include="Net\BarrageClient.cs" />
-    <Compile Include="DanmuMessage.cs" />
+    <Compile Include="DouyuBarrage.cs" />
     <Compile Include="Net\Packet.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Utils.cs" />
