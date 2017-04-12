@@ -13,7 +13,7 @@ namespace Douyu
     {
         static void Main(string[] args)
         {
-            var roomId = Utils.GetRoomId(new Uri("https://www.douyu.com/chenyifaer"));
+            var roomId = Utils.GetRoomId2(new Uri("https://www.douyu.com/chenyifaer"));
             if (string.IsNullOrWhiteSpace(roomId))
             {
                 Console.WriteLine("获取房间号失败");

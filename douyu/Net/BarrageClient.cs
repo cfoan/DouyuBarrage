@@ -44,7 +44,7 @@ namespace Douyu.Net
         private const int ResponseMessageType= 690;
         private const int ReceiveBufferSize = 8192;
         private const int SendBufferSize = 4096;
-        private const int LoginTimeout = 2000;
+        private const int LoginTimeout = 5000;
         private const int ConnectTimeOut = 2000;
         private const string DouyuDomain = "danmu.douyutv.com";
         private readonly int[] DouyuPorts = new int[] { 8061, 8062, 12601, 12602 };
@@ -120,19 +120,12 @@ namespace Douyu.Net
             }
 
             if (!isConnected) { throw new Exception("Unable to connect to server"); }
-
-#if DEBUG
-            Console.WriteLine("已连接到斗鱼弹幕服务器,{0}", socket.RemoteEndPoint.ToString());
-#endif
             socket.BeginReceive(receiveBuffer, 0, receiveBuffer.Length, SocketFlags.None, ReceiveComplted, socket);
             OnClientEvent += eventHandler;
             timer.Elapsed += Heatbeat;
             timer.Interval = 45 * 1000;
             timer.Start();
-
             Login();
-
-
             return this;
         }
 
@@ -167,6 +160,7 @@ namespace Douyu.Net
             {
                 isConnected = false;
                 isLogined = false;
+                bytesUnhandledLastTime = 0;
                 BarrageEventArgs eventArgs = new BarrageEventArgs();
                 eventArgs.Action = ActionType.Disconnect;
                 OnClientEvent?.Invoke(this, eventArgs);
@@ -183,23 +177,22 @@ namespace Douyu.Net
             packet.Data = "type@=loginreq/";
             packet.Flag = RequestMessageType;
             SendPacketInternal(packet);
-            bool loginSuccess = false;
             try
             {
-                loginSuccess = (bool)WaitImpl(login.Task, LoginTimeout);
+                var loginSuccess=(bool)WaitImpl(login.Task, LoginTimeout);
+                if (!loginSuccess) throw new Exception("Unable to login to server");
             }
-            catch (Exception)
+            catch(Exception ex)
             {
-                /**
-                 * do nothing 
-                 **/
+#if DEBUG
+                Console.WriteLine(ex.StackTrace);
+#endif
+                Stop();
+                throw;
             }
 
-            if (!loginSuccess)
-            {
-                Stop();
-                throw new Exception("login fail");
-            }
+            
+
         }
 
         private void KeepAlive()
@@ -273,7 +266,6 @@ namespace Douyu.Net
                 var bytesTransferredThisTime = socket.EndReceive(ia);
                 if (bytesTransferredThisTime > 0)
                 {
-                    // buffer not big ennough
                     if (bytesTransferredThisTime == receiveBuffer.Length || bytesTransferredThisTime + bytesUnhandledLastTime == receiveBuffer.Length)//buffer may be not big enough
                     {
                         var oldBufferLength = receiveBuffer.Length;
@@ -302,6 +294,12 @@ namespace Douyu.Net
                 {
                     Stop();
                 }
+            }
+            catch (ObjectDisposedException)
+            {
+                /**
+                 * lololol
+                 **/
             }
             catch (SocketException ex)
             {
