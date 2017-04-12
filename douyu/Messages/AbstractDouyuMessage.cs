@@ -1,4 +1,4 @@
-﻿namespace DouyuDanmu
+﻿namespace Douyu
 {
     public abstract class AbstractDouyuMessage
     {

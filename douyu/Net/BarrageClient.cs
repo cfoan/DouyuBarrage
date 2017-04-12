@@ -9,7 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Timers;
 
-namespace DouyuDanmu.Net
+namespace Douyu.Net
 {
     internal class AsyncState
     {
@@ -47,7 +47,7 @@ namespace DouyuDanmu.Net
         private const int LoginTimeout = 2000;
         private const int ConnectTimeOut = 2000;
         private const string DouyuDomain = "danmu.douyutv.com";
-        private readonly int[] DouyuDanmuPorts = new int[] { 8061, 8062, 12601, 12602 };
+        private readonly int[] DouyuPorts = new int[] { 8061, 8062, 12601, 12602 };
         
         private byte[] receiveBuffer;
         private Socket socket;
@@ -79,7 +79,7 @@ namespace DouyuDanmu.Net
             }
             foreach (var ip in ips)
             {
-                foreach (var port in DouyuDanmuPorts)
+                foreach (var port in DouyuPorts)
                 {
                     try
                     {

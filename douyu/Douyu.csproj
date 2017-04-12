@@ -7,8 +7,8 @@
     <ProjectGuid>{885A40AE-9265-486F-85B4-71B4B4E9E965}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>DouyuDanmu</RootNamespace>
-    <AssemblyName>DouyuDanmu</AssemblyName>
+    <RootNamespace>Douyu</RootNamespace>
+    <AssemblyName>Douyu</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>

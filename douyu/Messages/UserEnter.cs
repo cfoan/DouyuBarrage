@@ -4,22 +4,33 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DouyuDanmu.Messages
+namespace Douyu.Messages
 {
     /// <summary>
-    /// 弹幕消息
+    /// 用户进房通知消息
     /// </summary>
-    public class Barrage : AbstractDouyuMessage
+    public class UserEnter : AbstractDouyuMessage
     {
         /// <summary>
-        /// 弹幕租id
+        /// 表示为“用户进房通知”消息，固定为 uenter
         /// </summary>
-        public string gid { get; set; }
+        public override string type
+        {
+            get
+            {
+                return "uenter";
+            }
+        }
 
-        /// <summary>
+        // <summary>
         /// 房间id
         /// </summary>
         public string rid { get; set; }
+
+        /// <summary>
+        /// 弹幕分组 ID
+        /// </summary>
+        public string gid { get; set; }
 
         /// <summary>
         /// 发送者id
@@ -32,14 +43,9 @@ namespace DouyuDanmu.Messages
         public string nn { get; set; }
 
         /// <summary>
-        /// 弹幕内容
+        /// 战斗力
         /// </summary>
-        public string txt { get; set; }
-
-        /// <summary>
-        /// 弹幕唯一id
-        /// </summary>
-        public string cid { get; set; }
+        public string str { get; set; }
 
         /// <summary>
         /// 用户等级
@@ -50,16 +56,6 @@ namespace DouyuDanmu.Messages
         /// 礼物头衔：默认值0（表示没有头衔）
         /// </summary>
         public string gt { get; set; }
-
-        /// <summary>
-        /// 颜色：默认值0（表示默认颜色弹幕）
-        /// </summary>
-        public string col { get; set; }
-
-        /// <summary>
-        /// 客户端类型：默认值0（表示web用户）
-        /// </summary>
-        public string ct { get; set; }
 
         /// <summary>
         /// 房间权限组：默认值1（表示普通权限用户）
@@ -85,13 +81,5 @@ namespace DouyuDanmu.Messages
         /// 最高酬勤等级：默认值0（表示全站都没有酬勤）
         /// </summary>
         public string bdlv { get; set; }
-
-        public override string type
-        {
-            get
-            {
-                return "chatmsg";
-            }
-        }
     }
 }

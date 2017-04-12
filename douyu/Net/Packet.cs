@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DouyuDanmu.Net
+namespace Douyu.Net
 {
     /// <summary>
     /// 包结构

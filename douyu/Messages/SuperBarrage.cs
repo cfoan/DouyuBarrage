@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DouyuDanmu.Messages
+namespace Douyu.Messages
 {
     /// <summary>
     /// 超级弹幕消息

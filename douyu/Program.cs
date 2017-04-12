@@ -1,5 +1,5 @@
-﻿using DouyuDanmu.Messages;
-using DouyuDanmu.Net;
+﻿using Douyu.Messages;
+using Douyu.Net;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,7 +7,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DouyuDanmu
+namespace Douyu
 {
     class Program
     {

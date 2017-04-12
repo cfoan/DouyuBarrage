@@ -2,7 +2,7 @@
 using System.IO;
 using System.Net;
 
-namespace DouyuDanmu
+namespace Douyu
 {
     public class Utils
     {
