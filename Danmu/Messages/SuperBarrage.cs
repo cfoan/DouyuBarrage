@@ -9,7 +9,7 @@ namespace DouyuDanmu.Messages
     /// <summary>
     /// 超级弹幕消息
     /// </summary>
-    public class SuperDanmu : AbstractDouyuMessage
+    public class SuperBarrage : AbstractDouyuMessage
     {
         /// <summary>
         /// 房间 id

@@ -44,13 +44,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Messages\AbstractDouyuMessage.cs" />
-    <Compile Include="Messages\Danmu.cs" />
+    <Compile Include="Messages\Barrage.cs" />
+    <Compile Include="Messages\BarrageConverter.cs" />
     <Compile Include="Messages\DouyuMessageConverter.cs" />
     <Compile Include="Messages\Gift.cs" />
     <Compile Include="Messages\Keepalive.cs" />
-    <Compile Include="Messages\SuperDanmu.cs" />
+    <Compile Include="Messages\SuperBarrage.cs" />
     <Compile Include="Messages\UserEnter.cs" />
-    <Compile Include="Net\DanmuClient.cs" />
+    <Compile Include="Net\BarrageClient.cs" />
     <Compile Include="DanmuMessage.cs" />
     <Compile Include="Net\Packet.cs" />
     <Compile Include="Program.cs" />

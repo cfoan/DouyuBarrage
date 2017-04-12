@@ -27,7 +27,7 @@ namespace DouyuDanmu.Net
         Connect,Disconnect,PacketArrive
     }
 
-    public class BulletScreenEventArgs : EventArgs
+    public class BarrageEventArgs : EventArgs
     {
         public ActionType Action { get; set; }
 
@@ -36,9 +36,9 @@ namespace DouyuDanmu.Net
         public object UserToken { get; set; }
     }
 
-    public class BulletScreenClient
+    public class BarrageClient
     {
-        public event EventHandler<BulletScreenEventArgs> OnClientEvent;
+        public event EventHandler<BarrageEventArgs> OnClientEvent;
 
         private const int RequestMessageType= 689;
         private const int ResponseMessageType= 690;
@@ -56,13 +56,13 @@ namespace DouyuDanmu.Net
         private volatile bool isLogined;
         //private ConcurrentQueue<Packet> receivedPackets;
 
-        public BulletScreenClient()
+        public BarrageClient()
         {
             timer = new System.Timers.Timer();
             receiveBuffer = new byte[ReceiveBufferSize];
         }
 
-        public BulletScreenClient Start(EventHandler<BulletScreenEventArgs> eventHandler=null)
+        public BarrageClient Start(EventHandler<BarrageEventArgs> eventHandler=null)
         {
             Stop();
 
@@ -94,7 +94,7 @@ namespace DouyuDanmu.Net
                             if (isConnected = tmp.Connected)
                             {
                                 socket = tmp;
-                                BulletScreenEventArgs eventArgs = new BulletScreenEventArgs();
+                                BarrageEventArgs eventArgs = new BarrageEventArgs();
                                 eventArgs.Action = ActionType.Connect;
                                 OnClientEvent?.Invoke(this, eventArgs);
                                 break;
@@ -143,7 +143,7 @@ namespace DouyuDanmu.Net
 #endif
             Packet packet = new Packet();
             packet.Data = string.Format("type@=joingroup/rid@={0}/gid@=-9999/", roomId);
-            packet.Type = RequestMessageType;
+            packet.Flag = RequestMessageType;
             SendPacketInternal(packet);
         }
 
@@ -167,7 +167,7 @@ namespace DouyuDanmu.Net
             {
                 isConnected = false;
                 isLogined = false;
-                BulletScreenEventArgs eventArgs = new BulletScreenEventArgs();
+                BarrageEventArgs eventArgs = new BarrageEventArgs();
                 eventArgs.Action = ActionType.Disconnect;
                 OnClientEvent?.Invoke(this, eventArgs);
             }
@@ -181,9 +181,20 @@ namespace DouyuDanmu.Net
             login = new TaskCompletionSource<object>();
             Packet packet = new Packet();
             packet.Data = "type@=loginreq/";
-            packet.Type = RequestMessageType;
+            packet.Flag = RequestMessageType;
             SendPacketInternal(packet);
-            var loginSuccess=(bool)WaitImpl(login.Task, LoginTimeout);
+            bool loginSuccess = false;
+            try
+            {
+                loginSuccess = (bool)WaitImpl(login.Task, LoginTimeout);
+            }
+            catch (Exception)
+            {
+                /**
+                 * do nothing 
+                 **/
+            }
+
             if (!loginSuccess)
             {
                 Stop();
@@ -195,7 +206,7 @@ namespace DouyuDanmu.Net
         {
             Packet pkt = new Packet();
             pkt.Data = string.Format("type@=keeplive/tick@={0}/", Utils.CurrentTimestampUtc() / 1000);//取的秒数
-            pkt.Type = RequestMessageType;
+            pkt.Flag = RequestMessageType;
             SendPacketInternal(pkt);
         }
 
@@ -218,7 +229,7 @@ namespace DouyuDanmu.Net
                 isLogined = true;
                 packets.RemoveAt(0);
             }
-            BulletScreenEventArgs eventArgs = new BulletScreenEventArgs();
+            BarrageEventArgs eventArgs = new BarrageEventArgs();
             eventArgs.Action = ActionType.PacketArrive;
             eventArgs.PacketsReceived = packets;
             OnClientEvent?.Invoke(this, eventArgs);
@@ -341,7 +352,7 @@ namespace DouyuDanmu.Net
             writeOffset += 8;
             writeCount += 8;
 
-            BitConverter.GetBytes(packet.Type).CopyTo(buffer, writeOffset);
+            BitConverter.GetBytes(packet.Flag).CopyTo(buffer, writeOffset);
             writeOffset += 4;
             writeCount += 4;
 
@@ -373,7 +384,7 @@ namespace DouyuDanmu.Net
                 readIndex += 4; count -= 4;
                 pkt.LengthB = BitConverter.ToInt32(buffer, readIndex);
                 readIndex += 4; count -= 4;
-                pkt.Type = BitConverter.ToInt32(buffer, readIndex);
+                pkt.Flag = BitConverter.ToInt32(buffer, readIndex);
                 readIndex += 4; count -= 4;
                 if (pkt.LengthA <= 0) { throw new Exception("bad protocol"); }
                 var dataBytes = pkt.LengthA - 8 - 1;

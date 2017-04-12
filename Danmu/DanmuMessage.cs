@@ -1,107 +1,60 @@
-﻿using System;
+﻿using DouyuDanmu.Messages;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace DouyuDanmu
-{
-    public class DanmuMessage
-    {
-        /// <summary>
-        /// 弹幕id
-        /// </summary>
-        public string DanmuId { get; set; }
-
-        /// <summary>
-        /// 消息类型
-        /// </summary>
-        public string Type { get; set; }
-
-        /// <summary>
-        /// 房间号
-        /// </summary>
-        public string RoomId { get; set; }
-
-        /// <summary>
-        /// 用户id
-        /// </summary>
-        public string Uid { get; set; }
-
-        /// <summary>
-        /// 用户昵称
-        /// </summary>
-        public string NickName { get; set; }
-
-        /// <summary>
-        /// 房间身份组
-        /// </summary>
-        public string Rg { get; set; }
-
-        public string Icon { get; set; }
-
-        /// <summary>
-        /// 用户等级
-        /// </summary>
-        public string Level { get; set; }
-
-        /// <summary>
-        /// 弹幕内容
-        /// </summary>
-        public string Content { get; set; }
-
-        /// <summary>
-        /// 连击
-        /// </summary>
-        public string Hits { get; set; }
-
-        /// <summary>
-        /// 礼物id
-        /// </summary>
-        public string GiftId { get; set; }
-
-        public string Raw { get; set; }
-    }
-
-    public class DanmuParser
+{ 
+    public class DouyuMessage
     {
         private static string logPath = AppDomain.CurrentDomain.BaseDirectory + "\\log.txt";
         private static object locker = new object();
 
-        public const string KEY_CID = "cid";
-        public const string KEY_TYPE = "type";
-        public const string KEY_ROOM_ID = "rid";
-        public const string KEY_UID = "uid";
-        public const string KEY_NICKNAME = "nn";
-        public const string KEY_TXT = "txt";
-        public const string KEY_ICON = "ic";
-        public const string KEY_LEVEL = "level";
-        public const string KEY_GIFT_ID = "gfid";
-        public const string KEY_HITS = "hits";
+        private Dictionary<object, IMessageConverter> converterMap= new Dictionary<object, IMessageConverter>();
 
-        public static DanmuMessage Parse(string data)
+        public void LoadAllDouyuMessage()
         {
-            Dictionary<string, string> dict = new Dictionary<string, string>();
-            var differentParts = data.Split(new string[] { "@=", "/" }, StringSplitOptions.None);
-
-            for (int i = 0; i < differentParts.Length / 2; i++)
+            /**
+             * 1.获取所以converter，获取泛型Type
+             * 2.获取每个Message的type属性
+             * 3.建立type属性和converter的对应关系 
+             * */
+            Assembly assembly = Assembly.GetExecutingAssembly();
+            Type[] types = assembly.GetTypes();
+            foreach (Type type in types)
             {
-                var key = differentParts[2 * i].Replace("@S", "/").Replace("@A", "@");
-                var value = differentParts[2 * i + 1].Replace("@S", "/").Replace("@A", "@");
-                dict[key] = value;
+                if (type.GetInterface("IMessageConverter") != null && !type.IsAbstract)
+                {
+                    var genericArguments = type.BaseType.GetGenericArguments();
+                    foreach (var genericArgument in genericArguments)
+                    {
+                        if (genericArgument.BaseType == typeof(AbstractDouyuMessage))
+                        {
+                            var douyuMessageInstance = Activator.CreateInstance(genericArguments[0]);
+                            converterMap[genericArguments[0].GetProperty("type").GetValue(douyuMessageInstance)] = (IMessageConverter)type.GetConstructor(Type.EmptyTypes).Invoke(null);
+                            continue;
+                        }
+                    }
+
+                    var ms = type.GetMethod("ParseString");
+                    var ms2 = type.GetMethod("DumpsString");
+                    Console.WriteLine(ms);
+                }
             }
-            DanmuMessage msg = new DanmuMessage();
-            msg.Type = dict.ContainsKey(KEY_TYPE) ? dict[KEY_TYPE] : "";
-            msg.Content = dict.ContainsKey(KEY_TXT) ? dict[KEY_TXT] : "";
-            msg.NickName = dict.ContainsKey(KEY_NICKNAME) ? dict[KEY_NICKNAME] : "";
-            msg.Uid = dict.ContainsKey(KEY_UID) ? dict[KEY_UID] : "";
-            msg.RoomId = dict.ContainsKey(KEY_ROOM_ID) ? dict[KEY_ROOM_ID] : "";
-            msg.Level = dict.ContainsKey(KEY_LEVEL) ? dict[KEY_LEVEL] : "";
-            msg.GiftId = dict.ContainsKey(KEY_GIFT_ID) ? dict[KEY_GIFT_ID] : "";
-            msg.Hits = dict.ContainsKey(KEY_HITS) ? dict[KEY_HITS] : "";
-            msg.DanmuId = dict.ContainsKey(KEY_CID) ? dict[KEY_CID] : "";
-            msg.Raw = data;
-            return msg;
+
+        }
+
+        public void Parse(string data="type@=chatmsg/nn@=aaa/")
+        {
+            if (data.IndexOf("chatmsg") != -1)
+            {
+                var converter = converterMap["chatmsg"];
+                var message=typeof(IMessageConverter).GetMethod("ParseString").Invoke(converter,new object[] { data });
+                Console.WriteLine(message);
+            }
         }
 
         public static void Dumps(string log)
@@ -156,28 +109,25 @@ namespace DouyuDanmu
             }
         }
 
-        public static string ToString(DanmuMessage message)
+        public static string ToString(AbstractDouyuMessage message)
         {
-            switch (message.Type)
+            switch (message.type)
             {
                 case "chatmsg":
-                    return string.Format("[弹幕]{0}：{1}", message.NickName, message.Content);
+                    var chatMsg = message as Barrage;
+                    return string.Format("[弹幕]{0}：{1}", chatMsg.nn, chatMsg.txt);
                 case "dgb":
-                    if (GiftName(message.GiftId) == "unknown")
+                    var gift = message as Gift;
+                    if (GiftName(gift.gfid) == "unknown")
                     {
-                        Dumps(message.Raw);
+                        Dumps(gift.Raw);
                     }
-                    var giftInfo = string.Format("【{0}】 {1}", GiftName(message.GiftId), !string.IsNullOrWhiteSpace(message.Hits) ? string.Format("{0}连击", message.Hits) : "");
-                    return string.Format("[礼物]来自{0} {1}", message.NickName, giftInfo);
+                    var giftInfo = string.Format("【{0}】 {1}", GiftName(gift.gfid), !string.IsNullOrWhiteSpace(gift.hits) ? string.Format("{0}连击", gift.hits) : "");
+                    return string.Format("[礼物]来自{0} {1}", gift.nn, giftInfo);
                 default:
                     return "";
             }
         }
 
-    }
-
-    public abstract class DouyuMessageParser<TDouyuMessage>
-    {
-        public abstract TDouyuMessage ParseString(string data);
     }
 }

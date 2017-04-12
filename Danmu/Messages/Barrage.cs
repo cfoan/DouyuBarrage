@@ -9,7 +9,7 @@ namespace DouyuDanmu.Messages
     /// <summary>
     /// 弹幕消息
     /// </summary>
-    public class Danmu : AbstractDouyuMessage
+    public class Barrage : AbstractDouyuMessage
     {
         /// <summary>
         /// 弹幕租id
