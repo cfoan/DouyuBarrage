@@ -119,11 +119,7 @@ namespace Douyu
 
         public void ConsoleLog(string rawData)
         {
-            var view = MakeBarrageView(Parse(rawData));
-            if (!string.IsNullOrWhiteSpace(view))
-            {
-                Console.WriteLine(view);
-            }
+            ConsoleLog(Parse(rawData));
         }
 
         public static void Dumps(string log)
