@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Douyu.Messages
+﻿namespace Douyu.Messages
 {
     /// <summary>
     /// 赠送礼物消息
