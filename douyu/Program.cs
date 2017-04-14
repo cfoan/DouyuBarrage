@@ -40,7 +40,11 @@ namespace Douyu
                             }
                             validRoomIds1[index1++] = roomId;
                         }
-                        if (index1 == 0) { Console.WriteLine("can't find valid roomid,press any key to exit");break; }
+                        if (index1 == 0)
+                        {
+                            Console.WriteLine("can't find any valid roomid,press any key to exit");
+                            break;
+                        }
                         Array.ForEach(validRoomIds1.Take(index1).ToArray(), (roomId) =>
                          {
                              clients.Add(new BarrageClient().Start(HandleBarrageClientEvent).EnterRoom(roomId));
