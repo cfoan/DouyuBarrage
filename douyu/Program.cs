@@ -28,9 +28,10 @@ namespace Douyu
         {
             if (e.Action == ActionType.PacketArrive)
             {
+                AbstractDouyuMessage douyuMessage = null;
                 e.PacketsReceived?.ForEach((pkt) =>
                 {
-                    DouyuBarrage.Instance.ConsoleLog(pkt.Data);
+                    DouyuBarrage.Instance.Parse(pkt.Data, out douyuMessage).ShowBarrageView(douyuMessage);
                 });
             }
         }

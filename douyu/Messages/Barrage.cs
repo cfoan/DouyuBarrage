@@ -93,5 +93,18 @@ namespace Douyu.Messages
                 return "chatmsg";
             }
         }
+
+        public override string name
+        {
+            get
+            {
+                return "弹幕";
+            }
+        }
+
+        public override string ToString()
+        {
+            return string.Format("[弹幕]{0}：{1}", nn, txt);
+        }
     }
 }

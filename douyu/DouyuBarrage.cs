@@ -37,6 +37,9 @@ namespace Douyu
         }
     }
 
+    /// <summary>
+    /// 斗鱼消息处理
+    /// </summary>
     public class DouyuBarrage
     {
         private static string logPath = AppDomain.CurrentDomain.BaseDirectory + "\\log.txt";
@@ -53,23 +56,18 @@ namespace Douyu
 
         private DouyuBarrage()
         {
-            LoadAllDouyuMessageHandler();
+            LoadAllDouyuMessageDecoder();
         }
 
-        private void LoadAllDouyuMessageHandler()
+        private void LoadAllDouyuMessageDecoder()
         {
-            /**
-             * 1.获取所以converter，获取泛型Type
-             * 2.获取每个AbstractDouyuMessage的type属性
-             * 3.建立type属性和converter两个方法对应关系的对应关系 
-             * */
             Assembly assembly = Assembly.GetExecutingAssembly();
             Type[] types = assembly.GetTypes();
             foreach (Type type in types)
             {
                 if (type.GetInterface("IMessageConverter") != null && !type.IsAbstract)
                 {
-                    if (type.BaseType == typeof(DouyuMessageConverter<>).MakeGenericType(type.BaseType.GetGenericArguments()))
+                    if (type.BaseType == typeof(DouyuMessageDecoder<>).MakeGenericType(type.BaseType.GetGenericArguments()))
                     {
                         var genericArgument = type.BaseType.GetGenericArguments()[0];
                         if (genericArgument.BaseType == typeof(AbstractDouyuMessage))
@@ -77,7 +75,6 @@ namespace Douyu
                             var douyuMessage = (AbstractDouyuMessage)Activator.CreateInstance(genericArgument);
                             FastMethodInvoker methodInvoker = new FastMethodInvoker(type.GetConstructor(Type.EmptyTypes).Invoke(null));
                             methodInvoker.AddMethod("ParseString", type.GetMethod("ParseString"));
-                            methodInvoker.AddMethod("DumpsString", type.GetMethod("DumpsString"));
                             invokerMap[douyuMessage.type] = methodInvoker;
                         }
                     }
@@ -86,42 +83,75 @@ namespace Douyu
 
         }
 
-        public AbstractDouyuMessage Parse(string data)
+        private string GetMessageType(string data)
         {
-            if (data.IndexOf("chatmsg") != -1)
+            if (data == null) { throw new ArgumentNullException("data"); }
+            if (data.IndexOf("/") != -1)
             {
-                var methodInvoker = invokerMap["chatmsg"];
-                var message = (AbstractDouyuMessage)methodInvoker.Invoke("ParseString", new object[] { data });
-                return message;
+                var firstKeyValue = data.Substring(0, data.IndexOf("/")).Split(new string[] { "@=" }, StringSplitOptions.RemoveEmptyEntries);
+                if (firstKeyValue.Length == 2)
+                {
+                    return firstKeyValue[1];
+                }
             }
-            else if (data.IndexOf("dgb") != -1)
+            return "unknown";
+        }
+
+        public DouyuBarrage Parse(string data,out AbstractDouyuMessage douyuMessage)
+        {
+            douyuMessage = null;
+            var type = GetMessageType(data);
+            FastMethodInvoker methodInvoker = null;
+            if (invokerMap.TryGetValue(type, out methodInvoker))
             {
-                var methodInvoker = invokerMap["dgb"];
-                var message = (AbstractDouyuMessage)methodInvoker.Invoke("ParseString", new object[] { data });
-                return message;
+                douyuMessage=(AbstractDouyuMessage)methodInvoker.Invoke("ParseString", new object[] { data });
             }
-            return null;
+            return this;
         }
 
-        public string Dumps(AbstractDouyuMessage douyuMessage)
+        /// <summary>
+        /// 控制台打印，如果传入的参数为null,则不打印
+        /// </summary>
+        /// <param name="douyuMessage"></param>
+        public void ShowBarrageView(AbstractDouyuMessage douyuMessage)
         {
-            throw new NotSupportedException();
+            if (douyuMessage == null) { return; }
+            ShowBarrageViewInternal(douyuMessage);
         }
 
-        public void ConsoleLog(AbstractDouyuMessage douyuMessage)
+        private void ShowBarrageViewInternal(AbstractDouyuMessage douyuMessage)
         {
-            var view = MakeBarrageView(douyuMessage);
-            if (!string.IsNullOrWhiteSpace(view))
+            if (douyuMessage == null) { return; }
+            switch (douyuMessage.type)
             {
-                Console.WriteLine(view);
+                case "chatmsg":
+                    var chatMsg = douyuMessage as Barrage;
+                    Console.WriteLine(string.Format("[弹幕]{0}：{1}", chatMsg.nn, chatMsg.txt));
+                    break;
+                case "dgb":
+                    var gift = douyuMessage as Gift;
+                    if (GiftUtil.GiftName(gift.gfid) == "unknown")
+                    {
+                        Dumps(gift.raw);
+                    }
+                    var giftInfo = string.Format("【{0}】 {1}", GiftUtil.GiftName(gift.gfid), !string.IsNullOrWhiteSpace(gift.hits) ?
+                        string.Format("{0}连击", gift.hits) : "");
+                    Console.WriteLine(string.Format("[礼物]来自{0} {1}", gift.nn, giftInfo));
+                    break;
+                case "ssd":
+                    var superBarrage = douyuMessage as SuperBarrage;
+                    Console.WriteLine(string.Format("[超级弹幕]{0}", superBarrage.content));
+                    break;
+                default:
+                    break;
             }
         }
 
-        public void ConsoleLog(string rawData)
+        public static void Dumps(AbstractDouyuMessage douyuMessage)
         {
-            ConsoleLog(Parse(rawData));
+            if (douyuMessage == null) { return; }
+            Dumps(douyuMessage.ToString());
         }
-
         public static void Dumps(string log)
         {
             lock (locker)
@@ -130,68 +160,6 @@ namespace Douyu
                 {
                     sw.WriteLine(log);
                 }
-            }
-        }
-
-        internal static string GiftName(string id)
-        {
-            switch (id)
-            {
-                case "124":
-                    return "电竞三丑";
-                case "191":
-                    return "100鱼丸";
-                case "192":
-                    return "赞";
-                case "193":
-                    return "弱鸡";
-                case "194":
-                    return "666";
-                case "195":
-                    return "飞机";
-                case "196":
-                    return "火箭";
-                case "268":
-                    return "发财";
-                case "380":
-                    return "好人卡";
-                case "479":
-                    return "帐篷";
-                case "519":
-                    return "呵呵";
-                case "520":
-                    return "稳";
-                case "530":
-                    return "天秀";
-                case "712":
-                    return "棒棒哒";
-                case "714":
-                    return "怂";
-                case "713":
-                    return "辣眼睛";
-                default:
-                    return "unknown";
-            }
-        }
-
-        public static string MakeBarrageView(AbstractDouyuMessage douyuMessage)
-        {
-            if (douyuMessage == null) { return ""; }
-            switch (douyuMessage.type)
-            {
-                case "chatmsg":
-                    var chatMsg = douyuMessage as Barrage;
-                    return string.Format("[弹幕]{0}：{1}", chatMsg.nn, chatMsg.txt);
-                case "dgb":
-                    var gift = douyuMessage as Gift;
-                    if (GiftName(gift.gfid) == "unknown")
-                    {
-                        Dumps(gift.Raw);
-                    }
-                    var giftInfo = string.Format("【{0}】 {1}", GiftName(gift.gfid), !string.IsNullOrWhiteSpace(gift.hits) ? string.Format("{0}连击", gift.hits) : "");
-                    return string.Format("[礼物]来自{0} {1}", gift.nn, giftInfo);
-                default:
-                    return "";
             }
         }
 

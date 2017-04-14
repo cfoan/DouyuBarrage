@@ -46,5 +46,18 @@ namespace Douyu.Messages
                 return "ssd";
             }
         }
+
+        public override string name
+        {
+            get
+            {
+                return "超级弹幕";
+            }
+        }
+
+        public override string ToString()
+        {
+            return string.Format("[超级弹幕]{0}", content);
+        }
     }
 }

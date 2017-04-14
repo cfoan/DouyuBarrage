@@ -20,5 +20,13 @@ namespace Douyu.Messages
                 return "keepalive";
             }
         }
+
+        public override string name
+        {
+            get
+            {
+                return "心跳";
+            }
+        }
     }
 }

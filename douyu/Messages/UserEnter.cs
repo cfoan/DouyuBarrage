@@ -22,6 +22,14 @@ namespace Douyu.Messages
             }
         }
 
+        public override string name
+        {
+            get
+            {
+                return "用户进房通知";
+            }
+        }
+
         // <summary>
         /// 房间id
         /// </summary>

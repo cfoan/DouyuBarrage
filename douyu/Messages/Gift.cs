@@ -113,5 +113,64 @@ namespace Douyu.Messages
                 return "dgb";
             }
         }
+
+        public override string name
+        {
+            get
+            {
+                return "礼物";
+            }
+        }
+
+        public override string ToString()
+        {
+            var giftInfo = string.Format("【{0}】 {1}", GiftUtil.GiftName(gfid), !string.IsNullOrWhiteSpace(hits) ?
+                string.Format("{0}连击", hits) : "");
+            return string.Format("[礼物]来自{0} {1}", nn, giftInfo);
+        }
+    }
+
+    internal class GiftUtil
+    {
+        public static string GiftName(string id)
+        {
+            switch (id)
+            {
+                case "124":
+                    return "电竞三丑";
+                case "191":
+                    return "100鱼丸";
+                case "192":
+                    return "赞";
+                case "193":
+                    return "弱鸡";
+                case "194":
+                    return "666";
+                case "195":
+                    return "飞机";
+                case "196":
+                    return "火箭";
+                case "268":
+                    return "发财";
+                case "380":
+                    return "好人卡";
+                case "479":
+                    return "帐篷";
+                case "519":
+                    return "呵呵";
+                case "520":
+                    return "稳";
+                case "530":
+                    return "天秀";
+                case "712":
+                    return "棒棒哒";
+                case "714":
+                    return "怂";
+                case "713":
+                    return "辣眼睛";
+                default:
+                    return "unknown";
+            }
+        }
     }
 }

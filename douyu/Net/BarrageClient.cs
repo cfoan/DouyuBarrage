@@ -11,31 +11,17 @@ using System.Timers;
 
 namespace Douyu.Net
 {
-    internal class AsyncState
-    {
-        public Socket Socket { get; set; }
-
-        public byte[] Buffer { get; set; }
-
-        public int Offset { get; set; }
-
-        public int Count { get; set; }
-    }
-
+    /// <summary>
+    /// client动作类型
+    /// </summary>
     public enum ActionType
     {
         Connect,Disconnect,PacketArrive
     }
 
-    public class BarrageEventArgs : EventArgs
-    {
-        public ActionType Action { get; set; }
-
-        public List<Packet> PacketsReceived { get; set; }
-
-        public object UserToken { get; set; }
-    }
-
+    /// <summary>
+    /// 弹幕客户端
+    /// </summary>
     public class BarrageClient
     {
         public event EventHandler<BarrageEventArgs> OnClientEvent;
@@ -54,7 +40,6 @@ namespace Douyu.Net
         private System.Timers.Timer timer;
         private volatile bool isConnected;
         private volatile bool isLogined;
-        //private ConcurrentQueue<Packet> receivedPackets;
 
         public BarrageClient()
         {
@@ -62,6 +47,11 @@ namespace Douyu.Net
             receiveBuffer = new byte[ReceiveBufferSize];
         }
 
+        /// <summary>
+        /// 接收弹幕客户端的启动
+        /// </summary>
+        /// <param name="eventHandler">收到的消息的处理</param>
+        /// <returns>自己</returns>
         public BarrageClient Start(EventHandler<BarrageEventArgs> eventHandler=null)
         {
             Stop();
@@ -129,6 +119,10 @@ namespace Douyu.Net
             return this;
         }
 
+        /// <summary>
+        /// 进入房间
+        /// </summary>
+        /// <param name="roomId"></param>
         public void EnterRoom(string roomId)
         {
 #if DEBUG
@@ -140,6 +134,9 @@ namespace Douyu.Net
             SendPacketInternal(packet);
         }
 
+        /// <summary>
+        /// 停止接收弹幕服务器消息
+        /// </summary>
         public void Stop()
         {
             if (socket != null)
@@ -170,6 +167,10 @@ namespace Douyu.Net
         }
 
         private TaskCompletionSource<object> login;
+
+        /// <summary>
+        /// 发送登录请求并等待回复
+        /// </summary>
         private void Login()
         {
             login = new TaskCompletionSource<object>();
@@ -190,11 +191,11 @@ namespace Douyu.Net
                 Stop();
                 throw;
             }
-
-            
-
         }
 
+        /// <summary>
+        /// 发送心跳包
+        /// </summary>
         private void KeepAlive()
         {
             Packet pkt = new Packet();
@@ -211,6 +212,10 @@ namespace Douyu.Net
             }
         }
 
+        /// <summary>
+        /// 接收到服务器包的处理
+        /// </summary>
+        /// <param name="packets"></param>
         private void OnPacketsReceived(List<Packet> packets)
         {
             if (packets.Count == 0) { return; }
@@ -255,9 +260,14 @@ namespace Douyu.Net
             return task.Result;
         }
 
-        #region transfer,assemble and parse
+        #region handle send and receive events
 
         private volatile int bytesUnhandledLastTime = 0;
+
+        /// <summary>
+        /// 处理接收完成事件
+        /// </summary>
+        /// <param name="ia"></param>
         private void ReceiveComplted(IAsyncResult ia)
         {
             try
@@ -310,9 +320,13 @@ namespace Douyu.Net
             }
         }
 
+        /// <summary>
+        /// 处理发送完成事件
+        /// </summary>
+        /// <param name="ia"></param>
         private void SendComplted(IAsyncResult ia)
         {
-            var state = ia.AsyncState as AsyncState;
+            var state = ia.AsyncState as SendAsyncState;
             var socket = state.Socket;
             var buffer = state.Buffer;
             var bytesTransferred = socket.EndSend(ia);
@@ -322,6 +336,10 @@ namespace Douyu.Net
             }
         }
 
+        /// <summary>
+        /// 组包和发送
+        /// </summary>
+        /// <param name="packet"></param>
         private void SendPacketInternal(Packet packet)
         {
             byte[] buffer = new byte[SendBufferSize];
@@ -329,11 +347,17 @@ namespace Douyu.Net
             DoSend(buffer, 0, totalBytes);
         }
 
+        /// <summary>
+        /// 发送字符数组
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="offset"></param>
+        /// <param name="count"></param>
         private void DoSend(byte[] buffer, int offset, int count)
         {
             try
             {
-                socket.BeginSend(buffer, offset, count, SocketFlags.None, SendComplted, new AsyncState() { Socket = socket, Offset = offset, Buffer = buffer, Count = count });
+                socket.BeginSend(buffer, offset, count, SocketFlags.None, SendComplted, new SendAsyncState() { Socket = socket, Offset = offset, Buffer = buffer, Count = count });
             }
             catch (Exception ex)
             {
@@ -344,6 +368,14 @@ namespace Douyu.Net
             }
         }
 
+        /// <summary>
+        /// 包写入字符数组
+        /// </summary>
+        /// <param name="packet"></param>
+        /// <param name="buffer"></param>
+        /// <param name="offset"></param>
+        /// <param name="count"></param>
+        /// <returns>总共写入的字符数量</returns>
         private int WritePacket(Packet packet,ref byte[]buffer,int offset,int count)
         {
             int writeOffset = offset, writeCount = 0;
@@ -368,6 +400,14 @@ namespace Douyu.Net
             return writeCount;
         }
 
+        /// <summary>
+        /// 从字节数字读出包
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="offset"></param>
+        /// <param name="count"></param>
+        /// <param name="handledBytes">处理的字节总数</param>
+        /// <returns>读出的包列表</returns>
         private List<Packet> ReadPackets(byte[] buffer, int offset, int count, out int handledBytes)
         {
             List<Packet> packets = new List<Packet>(4);
@@ -400,5 +440,31 @@ namespace Douyu.Net
             return packets;
         }
         #endregion
+    }
+
+    /// <summary>
+    /// 弹幕客户端事件对象
+    /// </summary>
+    public class BarrageEventArgs : EventArgs
+    {
+        public ActionType Action { get; set; }
+
+        public List<Packet> PacketsReceived { get; set; }
+
+        public object UserToken { get; set; }
+    }
+
+    /// <summary>
+    /// 发送异步对象
+    /// </summary>
+    internal class SendAsyncState
+    {
+        public Socket Socket { get; set; }
+
+        public byte[] Buffer { get; set; }
+
+        public int Offset { get; set; }
+
+        public int Count { get; set; }
     }
 }
