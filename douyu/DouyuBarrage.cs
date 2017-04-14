@@ -109,6 +109,23 @@ namespace Douyu
             return this;
         }
 
+        public DouyuBarrage Parse(string[] datas, out AbstractDouyuMessage[] douyuMessages)
+        {
+            List<AbstractDouyuMessage> douyuMessagesLs = new List<AbstractDouyuMessage>(datas.Length);
+            Array.ForEach(datas, (data) =>
+             {
+                 var type = GetMessageType(data);
+                 FastMethodInvoker methodInvoker = null;
+                 if (invokerMap.TryGetValue(type, out methodInvoker))
+                 {
+                     var douyuMessage = (AbstractDouyuMessage)methodInvoker.Invoke("ParseString", new object[] { data });
+                     douyuMessagesLs.Add(douyuMessage);
+                 }
+             });
+            douyuMessages = douyuMessagesLs.ToArray();
+            return this;
+        }
+
         /// <summary>
         /// 控制台打印，如果传入的参数为null,则不打印
         /// </summary>
@@ -119,15 +136,34 @@ namespace Douyu
             ShowBarrageViewInternal(douyuMessage);
         }
 
-        private void ShowBarrageViewInternal(AbstractDouyuMessage douyuMessage)
+        public void ShowBarrageView(AbstractDouyuMessage[] douyuMessages)
         {
-            if (douyuMessage == null) { return; }
+            if (douyuMessages == null) { return; }
+            ShowBarrageViewInternal(douyuMessages);
+        }
+
+        private void ShowBarrageViewInternal(params AbstractDouyuMessage[]douyuMessages)
+        {
+            if (douyuMessages == null) { return; }
+            StringBuilder sb = new StringBuilder();
+            Array.ForEach(douyuMessages, (msg) =>
+             {
+                 var msgView = MessageView(msg);
+                 if (!string.IsNullOrWhiteSpace(msgView))
+                 {
+                     sb.AppendLine(msgView);
+                 }
+             });
+            Console.Write(sb.ToString());
+        }
+
+        internal string MessageView(AbstractDouyuMessage douyuMessage)
+        {
             switch (douyuMessage.type)
             {
                 case "chatmsg":
                     var chatMsg = douyuMessage as Barrage;
-                    Console.WriteLine(string.Format("[弹幕]{0}：{1}", chatMsg.nn, chatMsg.txt));
-                    break;
+                    return string.Format("[弹幕]{0}：{1}", chatMsg.nn, chatMsg.txt);
                 case "dgb":
                     var gift = douyuMessage as Gift;
                     if (GiftUtil.GiftName(gift.gfid) == "unknown")
@@ -136,15 +172,14 @@ namespace Douyu
                     }
                     var giftInfo = string.Format("【{0}】 {1}", GiftUtil.GiftName(gift.gfid), !string.IsNullOrWhiteSpace(gift.hits) ?
                         string.Format("{0}连击", gift.hits) : "");
-                    Console.WriteLine(string.Format("[礼物]来自{0} {1}", gift.nn, giftInfo));
-                    break;
+                    return string.Format("[礼物]来自{0} {1}", gift.nn, giftInfo);
                 case "ssd":
                     var superBarrage = douyuMessage as SuperBarrage;
-                    Console.WriteLine(string.Format("[超级弹幕]{0}", superBarrage.content));
-                    break;
+                    return string.Format("[超级弹幕]{0}", superBarrage.content);
                 default:
                     break;
             }
+            return "";
         }
 
         public static void Dumps(AbstractDouyuMessage douyuMessage)

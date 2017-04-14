@@ -123,7 +123,7 @@ namespace Douyu.Net
         /// 进入房间
         /// </summary>
         /// <param name="roomId"></param>
-        public void EnterRoom(string roomId)
+        public BarrageClient EnterRoom(string roomId)
         {
 #if DEBUG
             Console.WriteLine("try enter room {0}...", roomId);
@@ -132,6 +132,7 @@ namespace Douyu.Net
             packet.Data = string.Format("type@=joingroup/rid@={0}/gid@=-9999/", roomId);
             packet.Flag = RequestMessageType;
             SendPacketInternal(packet);
+            return this;
         }
 
         /// <summary>
