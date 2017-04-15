@@ -46,7 +46,7 @@ namespace Douyu.Messages
         {
             if (propertiesMap.ContainsKey(propertyName))
             {
-                propertiesMap[propertyName].SetValue(message, value);
+                propertiesMap[propertyName].SetValue(message, value,null);
             }
         }
 

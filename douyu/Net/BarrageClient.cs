@@ -305,6 +305,7 @@ namespace Douyu.Net
                         var newBufferWriteIndex = bytesTransferredThisTime + bytesUnhandledLastTime;
                         Buffer.BlockCopy(receiveBuffer, 0, newBuffer, 0, receiveBuffer.Length);
                         receiveBuffer = newBuffer;
+                        socket.ReceiveBufferSize = newBuffer.Length;
                         var countNewBufferCanWrite = newBuffer.Length - oldBufferLength;
                         bytesUnhandledLastTime = oldBufferLength;
                         socket.BeginReceive(receiveBuffer, newBufferWriteIndex, countNewBufferCanWrite, SocketFlags.None, ReceiveComplted, socket);
@@ -351,10 +352,11 @@ namespace Douyu.Net
             var state = ia.AsyncState as SendAsyncState;
             var socket = state.Socket;
             var buffer = state.Buffer;
+            var count = state.Count;
             var bytesTransferred = socket.EndSend(ia);
-            if (bytesTransferred < state.Count)
+            if (bytesTransferred < count)
             {
-                DoSend(buffer, bytesTransferred, state.Count - bytesTransferred);
+                DoSend(socket, buffer, bytesTransferred, count - bytesTransferred);
             }
         }
 
@@ -366,7 +368,7 @@ namespace Douyu.Net
         {
             byte[] buffer = new byte[SendBufferSize];
             var totalBytes = WritePacket(packet, ref buffer, 0, buffer.Length);
-            DoSend(buffer, 0, totalBytes);
+            DoSend(socket, buffer, 0, totalBytes);
         }
 
         /// <summary>
@@ -375,7 +377,7 @@ namespace Douyu.Net
         /// <param name="buffer"></param>
         /// <param name="offset"></param>
         /// <param name="count"></param>
-        private void DoSend(byte[] buffer, int offset, int count)
+        private void DoSend(Socket socket,byte[] buffer, int offset, int count)
         {
             try
             {
