@@ -22,10 +22,7 @@ namespace Douyu
             get { return instance; }
         }
 
-        private DouyuBarrage()
-        {
-            
-        }
+        private DouyuBarrage() { }
 
         /// <summary>
         /// 控制台打印，如果传入的参数为null,则不打印
@@ -65,7 +62,7 @@ namespace Douyu
                 case BarrageConstants.TYPE_BARRAGE:
                     var chatMsg = douyuMessage as Barrage;
                     return string.Format("[弹幕]{0}：{1}", chatMsg.nn, chatMsg.txt);
-                case "dgb":
+                case BarrageConstants.TYPE_GIFT:
                     var gift = douyuMessage as Gift;
                     if (GiftUtil.GiftName(gift.gfid) == "unknown")
                     {
@@ -74,7 +71,7 @@ namespace Douyu
                     var giftInfo = string.Format("【{0}】 {1}", GiftUtil.GiftName(gift.gfid), !string.IsNullOrWhiteSpace(gift.hits) ?
                         string.Format("{0}连击", gift.hits) : "");
                     return string.Format("[礼物]来自{0} {1}", gift.nn, giftInfo);
-                case "ssd":
+                case BarrageConstants.TYPE_SUPER_BARRAGE:
                     var superBarrage = douyuMessage as SuperBarrage;
                     return string.Format("[超级弹幕]{0}", superBarrage.content);
                 default:
