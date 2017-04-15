@@ -5,6 +5,8 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
+using System.Linq;
+using Douyu.Messages;
 
 namespace Douyu.Net
 {
@@ -13,7 +15,7 @@ namespace Douyu.Net
     /// </summary>
     public enum ActionType
     {
-        Connect,Disconnect,PacketArrive
+        Connect,Disconnect,NewMessage
     }
 
     /// <summary>
@@ -36,7 +38,7 @@ namespace Douyu.Net
         private Socket socket;
         private System.Timers.Timer timer;
         private volatile bool isConnected;
-        private volatile bool isLogined;
+        //private volatile bool isLogined;
 
         public BarrageClient()
         {
@@ -154,12 +156,12 @@ namespace Douyu.Net
             if (isConnected)
             {
                 isConnected = false;
-                isLogined = false;
                 bytesUnhandledLastTime = 0;
                 BarrageEventArgs eventArgs = new BarrageEventArgs();
                 eventArgs.Action = ActionType.Disconnect;
                 OnClientEvent?.Invoke(this, eventArgs);
             }
+            OnClientEvent = null;
             timer.Stop();
             timer.Elapsed -= Heatbeat;
         }
@@ -216,19 +218,41 @@ namespace Douyu.Net
         /// <param name="packets"></param>
         private void OnPacketsReceived(List<Packet> packets)
         {
-            if (packets.Count == 0) { return; }
-            if (!isLogined)
+            if (packets==null||packets.Count == 0) { return; }
+            var datas = packets.Select((packet) => { return packet.Data; });
+            var douyuMessages=Decoders.Instance.Parse(datas.ToArray());
+            douyuMessages = FilterControlMessage(douyuMessages);
+            if (douyuMessages.Length > 0)
             {
-                var loginSuccess = packets[0].Data.IndexOf("loginres") != -1;
-                login.TrySetResult(loginSuccess);
-                if (!loginSuccess) { return; }
-                isLogined = true;
-                packets.RemoveAt(0);
+                BarrageEventArgs eventArgs = new BarrageEventArgs();
+                eventArgs.Action = ActionType.NewMessage;
+                eventArgs.Messages = new List<AbstractDouyuMessage>(douyuMessages);
+                OnClientEvent?.Invoke(this, eventArgs);
             }
-            BarrageEventArgs eventArgs = new BarrageEventArgs();
-            eventArgs.Action = ActionType.PacketArrive;
-            eventArgs.PacketsReceived = packets;
-            OnClientEvent?.Invoke(this, eventArgs);
+        }
+
+        private AbstractDouyuMessage[] FilterControlMessage(AbstractDouyuMessage[] douyuMessages)
+        {
+            return douyuMessages.SkipWhile((message) =>
+            {
+                switch (message.type)
+                {
+                    case BarrageConstants.TYPE_LOGIN_RESPONSE:
+#if DEBUG
+                        System.Diagnostics.Debug.WriteLine(message.type);
+#endif
+                        login.TrySetResult(true);
+                        return true;
+                    case BarrageConstants.TYPE_KEEP_ALIVE:
+#if DEBUG
+                        System.Diagnostics.Debug.WriteLine(message.type);
+#endif
+                        return true;
+                    default:
+                        return false;
+                }
+            })
+            .ToArray();
         }
 
         internal static object WaitImpl(Task<object> task, int timeout)
@@ -447,7 +471,7 @@ namespace Douyu.Net
     {
         public ActionType Action { get; set; }
 
-        public List<Packet> PacketsReceived { get; set; }
+        public List<AbstractDouyuMessage> Messages { get; set; }
 
         public object UserToken { get; set; }
     }

@@ -94,11 +94,9 @@ namespace Douyu
 
         private static void HandleBarrageClientEvent(object sender, BarrageEventArgs e)
         {
-            if (e.Action == ActionType.PacketArrive)
+            if (e.Action == ActionType.NewMessage)
             {
-                AbstractDouyuMessage[] douyuMessages = null;
-                var datas = e.PacketsReceived?.Select((packet) =>{ return packet.Data; });
-                DouyuBarrage.Instance.Parse(datas.ToArray(), out douyuMessages).ShowBarrageView(douyuMessages);
+                DouyuBarrage.Instance.ShowBarrageView(e.Messages.ToArray());
             }
         }
     }

@@ -8,6 +8,9 @@ namespace Douyu
     public class Utils
     {
         private const string RegexRoomId = "\"room_id\":(\\d*),";
+        private const string RegexRoomId2 = "\"online_id\":\"(\\d*)\",";
+        //webGetRoom :http://www.douyu.com/specific/webMGetRoom/{roomId}
+        //isRecording: http://www.douyu.com/swf_api/getRoomRecordStatus/
         /// <summary>
         /// 获取unix时间
         /// </summary>
@@ -48,13 +51,26 @@ namespace Douyu
             {
                 var response = sr.ReadToEnd();
                 Regex regex = new Regex(RegexRoomId, RegexOptions.IgnoreCase);
+                Regex regex2 = new Regex(RegexRoomId2, RegexOptions.IgnoreCase);
                 var match=regex.Match(response);
                 if (match.Success&& match.Groups.Count>1)
                 {
                     return match.Groups[1].Value;
                 }
+
+                match = regex2.Match(response);
+                if (match.Success && match.Groups.Count > 1)
+                {
+                    return match.Groups[1].Value;
+                }
             }
             return "";
+        }
+
+
+        public static void GetRoom()
+        {
+            throw new NotSupportedException();
         }
     }
 }

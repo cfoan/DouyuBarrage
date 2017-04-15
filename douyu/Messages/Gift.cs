@@ -139,13 +139,23 @@
                 case "193":
                     return "弱鸡";
                 case "194":
-                    return "666";
+                    return "666";//￥6
                 case "195":
                     return "飞机";
                 case "196":
                     return "火箭";
                 case "268":
                     return "发财";
+                case "338":
+                    return "草莓蛋糕";//100鱼丸
+                case "339":
+                    return "新手之剑";//￥0.1
+                case "340":
+                    return "被剪掉的网线";//￥0.2
+                case "342":
+                    return "全场MVP";//￥100
+                case "343":
+                    return "冠军杯";//￥500
                 case "380":
                     return "好人卡";
                 case "479":

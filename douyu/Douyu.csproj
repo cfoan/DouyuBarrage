@@ -45,11 +45,13 @@
   <ItemGroup>
     <Compile Include="Messages\AbstractDouyuMessage.cs" />
     <Compile Include="Messages\Barrage.cs" />
+    <Compile Include="Messages\BarrageConstants.cs" />
     <Compile Include="Messages\Decoders.cs" />
     <Compile Include="Messages\DouyuMessageDecoder.cs" />
     <Compile Include="Messages\Gift.cs" />
     <Compile Include="Messages\GiftInsideRoom.cs" />
     <Compile Include="Messages\Keepalive.cs" />
+    <Compile Include="Messages\LoginResponse.cs" />
     <Compile Include="Messages\RoomStopStart.cs" />
     <Compile Include="Messages\SuperBarrage.cs" />
     <Compile Include="Messages\UserEnter.cs" />
