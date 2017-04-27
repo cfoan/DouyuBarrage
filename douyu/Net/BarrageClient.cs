@@ -27,7 +27,7 @@ namespace Douyu.Net
 
         private const int RequestMessageType= 689;
         private const int ResponseMessageType= 690;
-        private const int ReceiveBufferSize = 8192;
+        private const int ReceiveBufferSize = 8192 * 2;
         private const int SendBufferSize = 4096;
         private const int LoginTimeout = 5000;
         private const int ConnectTimeOut = 2000;
@@ -110,7 +110,6 @@ namespace Douyu.Net
 
             if (!isConnected) { throw new Exception("Unable to connect to server"); }
             socket.BeginReceive(receiveBuffer, 0, receiveBuffer.Length, SocketFlags.None, ReceiveComplted, socket);
-            
             timer.Elapsed += Heatbeat;
             timer.Interval = 45 * 1000;
             timer.Start();
@@ -298,20 +297,20 @@ namespace Douyu.Net
                 var bytesTransferredThisTime = socket.EndReceive(ia);
                 if (bytesTransferredThisTime > 0)
                 {
-                    if (bytesTransferredThisTime == receiveBuffer.Length || bytesTransferredThisTime + bytesUnhandledLastTime == receiveBuffer.Length)//buffer may be not big enough
-                    {
-                        var oldBufferLength = receiveBuffer.Length;
-                        var newBuffer = new byte[oldBufferLength * 2];
-                        var newBufferWriteIndex = bytesTransferredThisTime + bytesUnhandledLastTime;
-                        Buffer.BlockCopy(receiveBuffer, 0, newBuffer, 0, receiveBuffer.Length);
-                        receiveBuffer = newBuffer;
-                        socket.ReceiveBufferSize = newBuffer.Length;
-                        var countNewBufferCanWrite = newBuffer.Length - oldBufferLength;
-                        bytesUnhandledLastTime = oldBufferLength;
-                        socket.BeginReceive(receiveBuffer, newBufferWriteIndex, countNewBufferCanWrite, SocketFlags.None, ReceiveComplted, socket);
-                    }
-                    else
-                    {
+                    //if (bytesTransferredThisTime == receiveBuffer.Length || bytesTransferredThisTime + bytesUnhandledLastTime == receiveBuffer.Length)//buffer may be not big enough
+                    //{
+                    //    var oldBufferLength = receiveBuffer.Length;
+                    //    var newBuffer = new byte[oldBufferLength * 2];
+                    //    var newBufferWriteIndex = bytesTransferredThisTime + bytesUnhandledLastTime;
+                    //    Buffer.BlockCopy(receiveBuffer, 0, newBuffer, 0, receiveBuffer.Length);
+                    //    receiveBuffer = newBuffer;
+                    //    socket.ReceiveBufferSize = newBuffer.Length;
+                    //    var countNewBufferCanWrite = newBuffer.Length - oldBufferLength;
+                    //    bytesUnhandledLastTime = oldBufferLength;
+                    //    socket.BeginReceive(receiveBuffer, newBufferWriteIndex, countNewBufferCanWrite, SocketFlags.None, ReceiveComplted, socket);
+                    //}
+                    //else
+                    //{
                         int handledBytes = 0;
                         var total = bytesTransferredThisTime + bytesUnhandledLastTime;
                         var pkts = ReadPackets(receiveBuffer, 0, total, out handledBytes);
@@ -321,7 +320,7 @@ namespace Douyu.Net
                         var countCanWrite = receiveBuffer.Length - writeIndex;
                         OnPacketsReceived(pkts);
                         socket.BeginReceive(receiveBuffer, writeIndex, countCanWrite, SocketFlags.None, ReceiveComplted, socket);
-                    }
+                    //}
                 }
                 else if (bytesTransferredThisTime <= 0)
                 {
