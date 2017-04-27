@@ -54,7 +54,7 @@ namespace Douyu.Net
         public BarrageClient Start(EventHandler<BarrageEventArgs> eventHandler=null)
         {
             Stop();
-
+            OnClientEvent += eventHandler;
             var ips = new IPAddress[0];
             try
             {
@@ -110,7 +110,7 @@ namespace Douyu.Net
 
             if (!isConnected) { throw new Exception("Unable to connect to server"); }
             socket.BeginReceive(receiveBuffer, 0, receiveBuffer.Length, SocketFlags.None, ReceiveComplted, socket);
-            OnClientEvent += eventHandler;
+            
             timer.Elapsed += Heatbeat;
             timer.Interval = 45 * 1000;
             timer.Start();
@@ -129,7 +129,7 @@ namespace Douyu.Net
 #endif
             Packet packet = new Packet();
             packet.Data = string.Format("type@=joingroup/rid@={0}/gid@=-9999/", roomId);
-            packet.Flag = RequestMessageType;
+            packet.Type = RequestMessageType;
             SendPacketInternal(packet);
             return this;
         }
@@ -176,7 +176,7 @@ namespace Douyu.Net
             login = new TaskCompletionSource<object>();
             Packet packet = new Packet();
             packet.Data = "type@=loginreq/";
-            packet.Flag = RequestMessageType;
+            packet.Type = RequestMessageType;
             SendPacketInternal(packet);
             try
             {
@@ -200,7 +200,7 @@ namespace Douyu.Net
         {
             Packet pkt = new Packet();
             pkt.Data = string.Format("type@=keeplive/tick@={0}/", Utils.CurrentTimestampUtc() / 1000);//取的秒数
-            pkt.Flag = RequestMessageType;
+            pkt.Type = RequestMessageType;
             SendPacketInternal(pkt);
         }
 
@@ -406,7 +406,7 @@ namespace Douyu.Net
             writeOffset += 8;
             writeCount += 8;
 
-            BitConverter.GetBytes(packet.Flag).CopyTo(buffer, writeOffset);
+            BitConverter.GetBytes(packet.Type).CopyTo(buffer, writeOffset);
             writeOffset += 4;
             writeCount += 4;
 
@@ -446,7 +446,7 @@ namespace Douyu.Net
                 readIndex += 4; count -= 4;
                 pkt.LengthB = BitConverter.ToInt32(buffer, readIndex);
                 readIndex += 4; count -= 4;
-                pkt.Flag = BitConverter.ToInt32(buffer, readIndex);
+                pkt.Type = BitConverter.ToInt32(buffer, readIndex);
                 readIndex += 4; count -= 4;
                 if (pkt.LengthA <= 0) { throw new Exception("bad protocol"); }
                 var dataBytes = pkt.LengthA - 8 - 1;

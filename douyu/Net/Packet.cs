@@ -16,9 +16,9 @@
         public int LengthB { get; set; }
 
         /// <summary>
-        /// 包类型标识
+        /// 包类型（请求689，回复690）
         /// </summary>
-        public int Flag { get; set; }
+        public int Type { get; set; }
 
         /// <summary>
         /// 数据
