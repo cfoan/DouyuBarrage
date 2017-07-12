@@ -96,9 +96,12 @@
             }
         }
 
-        public override string ToString()
+        public override MessageSource Source
         {
-            return string.Format("[弹幕]{0}：{1}", nn, txt);
+            get
+            {
+                return MessageSource.Server;
+            }
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Net;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Douyu
@@ -71,6 +72,32 @@ namespace Douyu
         public static void GetRoom()
         {
             throw new NotSupportedException();
+        }
+
+        private static string logPath = AppDomain.CurrentDomain.BaseDirectory + "\\log.txt";
+        private static volatile StringBuilder sb = new StringBuilder();
+
+        public static void Dumps(string log)
+        {
+            using (FileStream fs = new FileStream(logPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite))
+            {
+                if (fs.CanWrite)
+                {
+                    using (StreamWriter sw = new StreamWriter(fs, Encoding.UTF8))
+                    {
+                        if (sb.Length > 0)
+                        {
+                            sw.WriteLine(sb.ToString());
+                            sb.Clear();
+                        }
+                        sw.WriteLine(log);
+                    }
+                }
+                else
+                {
+                    sb.AppendLine(log);
+                }
+            }
         }
     }
 }

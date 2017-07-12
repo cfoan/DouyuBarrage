@@ -116,11 +116,12 @@
             }
         }
 
-        public override string ToString()
+        public override MessageSource Source
         {
-            var giftInfo = string.Format("【{0}】 {1}", GiftUtil.GiftName(gfid), !string.IsNullOrWhiteSpace(hits) ?
-                string.Format("{0}连击", hits) : "");
-            return string.Format("[礼物]来自{0} {1}", nn, giftInfo);
+            get
+            {
+                return MessageSource.Server;
+            }
         }
     }
 

@@ -22,5 +22,13 @@
                 return "心跳";
             }
         }
+
+        public override MessageSource Source
+        {
+            get
+            {
+                return MessageSource.Client;
+            }
+        }
     }
 }

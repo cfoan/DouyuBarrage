@@ -16,6 +16,9 @@ namespace Douyu.Messages
         private readonly GiftInsideRoomDecoder m_giftInsideRoomDecoder = new GiftInsideRoomDecoder();
         private readonly RoomStartStopDecoder m_roomStartStopDecoder = new RoomStartStopDecoder();
         private readonly LoginResponseDecoder m_loginResponseDecoder = new LoginResponseDecoder();
+        private readonly JoinGroupDecoder m_joinGroupDecoder = new JoinGroupDecoder();
+        private readonly LoginRequestDecoder m_loginRequestDecoder = new LoginRequestDecoder();
+
         private static Decoders instance=new Decoders();
 
         public static Decoders Instance { get { return instance; } }
@@ -48,7 +51,7 @@ namespace Douyu.Messages
                     return m_userEnterDecoder.Decode(data);
 
             }
-            throw new InvalidOperationException("unknown message type");
+            throw new InvalidOperationException("Decode:unknown message type");
         }
 
         public AbstractDouyuMessage[] Parse(string[] datas)
@@ -59,6 +62,31 @@ namespace Douyu.Messages
                 douyuMessagesLs.Add(Parse(data));
             });
             return douyuMessagesLs.ToArray();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="message"></param>
+        /// <returns></returns>
+        public string Encode(AbstractDouyuMessage message)
+        {
+            if (message.Source.Equals(MessageSource.Server))
+            {
+                throw new NotImplementedException();
+            }
+            
+            switch (message.type)
+            {
+                case BarrageConstants.TYPE_KEEP_ALIVE:
+                    return m_keepaliveDecoder.Encode((Keepalive)message);
+                case BarrageConstants.TYPE_JOIN_GROUP:
+                    return m_joinGroupDecoder.Encode((JoinGroup)message);
+                case BarrageConstants.TYPE_LOGIN_REQUEST:
+                    return m_loginRequestDecoder.Encode((LoginRequest)message);
+
+            }
+            throw new InvalidOperationException("Encode:unknown message type ");
         }
 
         private string GetMessageType(string data)
@@ -76,19 +104,53 @@ namespace Douyu.Messages
         }
     }
 
-    internal class GiftDecoder : DouyuMessageDecoder<Gift> { }
+    internal class GiftDecoder : DouyuMessageConverter<Gift>
+    {
 
-    internal class BarrageDecoder : DouyuMessageDecoder<Barrage> { }
+    }
 
-    internal class UserEnterDecoder : DouyuMessageDecoder<UserEnter> { }
+    internal class BarrageDecoder : DouyuMessageConverter<Barrage>
+    {
 
-    internal class KeepaliveDecoder : DouyuMessageDecoder<Keepalive> { }
+    }
 
-    internal class SuperBarrageDecoder : DouyuMessageDecoder<SuperBarrage> { }
+    internal class UserEnterDecoder : DouyuMessageConverter<UserEnter>
+    {
 
-    internal class GiftInsideRoomDecoder : DouyuMessageDecoder<GiftInsideRoom> { }
+    }
 
-    internal class RoomStartStopDecoder : DouyuMessageDecoder<RoomStartStop> { }
+    internal class KeepaliveDecoder : DouyuMessageConverter<Keepalive>
+    {
 
-    internal class LoginResponseDecoder : DouyuMessageDecoder<LoginResponse> { }
+    }
+
+    internal class SuperBarrageDecoder : DouyuMessageConverter<SuperBarrage>
+    {
+
+    }
+
+    internal class GiftInsideRoomDecoder : DouyuMessageConverter<GiftInsideRoom>
+    {
+
+    }
+
+    internal class RoomStartStopDecoder : DouyuMessageConverter<RoomStartStop>
+    {
+
+    }
+
+    internal class LoginResponseDecoder : DouyuMessageConverter<LoginResponse>
+    {
+
+    }
+
+    internal class LoginRequestDecoder : DouyuMessageConverter<LoginRequest>
+    {
+
+    }
+
+    internal class JoinGroupDecoder : DouyuMessageConverter<JoinGroup>
+    {
+
+    }
 }

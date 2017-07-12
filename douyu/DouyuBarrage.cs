@@ -13,7 +13,6 @@ namespace Douyu
     /// </summary>
     public class DouyuBarrage
     {
-        private static string logPath = AppDomain.CurrentDomain.BaseDirectory + "\\log.txt";
         private static object locker = new object();
 
         private static DouyuBarrage instance = new DouyuBarrage();
@@ -41,7 +40,7 @@ namespace Douyu
             ShowBarrageViewInternal(douyuMessages);
         }
 
-        private void ShowBarrageViewInternal(params AbstractDouyuMessage[]douyuMessages)
+        internal void ShowBarrageViewInternal(params AbstractDouyuMessage[]douyuMessages)
         {
             if (douyuMessages == null) { return; }
             StringBuilder sb = new StringBuilder();
@@ -67,7 +66,7 @@ namespace Douyu
                     var gift = douyuMessage as Gift;
                     if (GiftUtil.GiftName(gift.gfid) == "unknown")
                     {
-                        Dumps(gift.raw);
+                        Utils.Dumps(gift.raw);
                     }
                     var giftInfo = string.Format("【{0}】 {1}", GiftUtil.GiftName(gift.gfid), !string.IsNullOrWhiteSpace(gift.hits) ?
                         string.Format("{0}连击", gift.hits) : "");
@@ -79,36 +78,6 @@ namespace Douyu
                     break;
             }
             return "";
-        }
-
-        public static void Dumps(AbstractDouyuMessage douyuMessage)
-        {
-            if (douyuMessage == null) { return; }
-            Dumps(douyuMessage.ToString());
-        }
-
-        private static volatile StringBuilder sb = new StringBuilder();
-        public static void Dumps(string log)
-        {
-            using (FileStream fs = new FileStream(logPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite))
-            {
-                if (fs.CanWrite)
-                {
-                    using (StreamWriter sw = new StreamWriter(fs, Encoding.UTF8))
-                    {
-                        if (sb.Length > 0)
-                        {
-                            sw.WriteLine(sb.ToString());
-                            sb.Clear();
-                        }
-                        sw.WriteLine(log);
-                    }
-                }
-                else
-                {
-                    sb.AppendLine(log);
-                }
-            }      
         }
 
     }

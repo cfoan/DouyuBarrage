@@ -24,6 +24,14 @@
             }
         }
 
+        public override MessageSource Source
+        {
+            get
+            {
+                return MessageSource.Server;
+            }
+        }
+
         // <summary>
         /// 房间id
         /// </summary>

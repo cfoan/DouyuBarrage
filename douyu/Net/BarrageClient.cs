@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Timers;
 using System.Linq;
 using Douyu.Messages;
+using System.Collections.Concurrent;
 
 namespace Douyu.Net
 {
@@ -33,7 +34,7 @@ namespace Douyu.Net
         private const int ConnectTimeOut = 2000;
         private const string DouyuDomain = "danmu.douyutv.com";//or openbarrage.douyutv.com 
         private readonly int[] DouyuPorts = new int[] { 8061, 8062, 12601, 12602 };
-        
+        private ConcurrentDictionary<string, Action<AbstractDouyuMessage[]>> TypeMessageReceiveCallbacks = new ConcurrentDictionary<string, Action<AbstractDouyuMessage[]>>();
         private byte[] receiveBuffer;
         private Socket socket;
         private System.Timers.Timer timer;
@@ -117,19 +118,18 @@ namespace Douyu.Net
             return this;
         }
 
-        /// <summary>
-        /// 进入房间
-        /// </summary>
-        /// <param name="roomId"></param>
-        public BarrageClient EnterRoom(string roomId)
+        public BarrageClient RegisterReceiveCallback(string type, Action<AbstractDouyuMessage[]> callback)
         {
-#if DEBUG
-            Console.WriteLine("try enter room {0}...", roomId);
-#endif
-            Packet packet = new Packet();
-            packet.Data = string.Format("type@=joingroup/rid@={0}/gid@=-9999/", roomId);
-            packet.Type = RequestMessageType;
-            SendPacketInternal(packet);
+            if (!TypeMessageReceiveCallbacks.ContainsKey(type))
+            {
+                TypeMessageReceiveCallbacks[type] = callback;
+            }
+            return this;
+        }
+
+        public BarrageClient UnregisterReceiveCallback(string type,out Action<AbstractDouyuMessage[]> callback)
+        {
+            TypeMessageReceiveCallbacks.TryRemove(type, out callback);
             return this;
         }
 
@@ -165,6 +165,23 @@ namespace Douyu.Net
             timer.Elapsed -= Heatbeat;
         }
 
+        #region #todo move to BarrageClientWrapper
+        /// <summary>
+        /// 进入房间
+        /// </summary>
+        /// <param name="roomId"></param>
+        public BarrageClient EnterRoom(string roomId)
+        {
+#if DEBUG
+            Console.WriteLine("try enter room {0}...", roomId);
+#endif
+            JoinGroup joinGroup = new JoinGroup();
+            joinGroup.gid = "-9999";
+            joinGroup.rid = roomId;
+            SendDouyuMessage(joinGroup);
+            return this;
+        }
+
         private TaskCompletionSource<object> login;
 
         /// <summary>
@@ -173,10 +190,7 @@ namespace Douyu.Net
         private void Login()
         {
             login = new TaskCompletionSource<object>();
-            Packet packet = new Packet();
-            packet.Data = "type@=loginreq/";
-            packet.Type = RequestMessageType;
-            SendPacketInternal(packet);
+            SendDouyuMessage(new LoginRequest());
             try
             {
                 var loginSuccess=(bool)WaitImpl(login.Task, LoginTimeout);
@@ -192,42 +206,9 @@ namespace Douyu.Net
             }
         }
 
-        /// <summary>
-        /// 发送心跳包
-        /// </summary>
-        private void KeepAlive()
-        {
-            Packet pkt = new Packet();
-            pkt.Data = string.Format("type@=keeplive/tick@={0}/", Utils.CurrentTimestampUtc() / 1000);//取的秒数
-            pkt.Type = RequestMessageType;
-            SendPacketInternal(pkt);
-        }
-
         private void Heatbeat(object sender, ElapsedEventArgs e)
         {
-            if (socket != null && socket.Connected)
-            {
-                KeepAlive();
-            }
-        }
-
-        /// <summary>
-        /// 接收到服务器包的处理
-        /// </summary>
-        /// <param name="packets"></param>
-        private void OnPacketsReceived(List<Packet> packets)
-        {
-            if (packets==null||packets.Count == 0) { return; }
-            var datas = packets.Select((packet) => { return packet.Data; });
-            var douyuMessages=Decoders.Instance.Parse(datas.ToArray());
-            douyuMessages = FilterControlMessage(douyuMessages);
-            if (douyuMessages.Length > 0)
-            {
-                BarrageEventArgs eventArgs = new BarrageEventArgs();
-                eventArgs.Action = ClientEventType.NewMessage;
-                eventArgs.Messages = new List<AbstractDouyuMessage>(douyuMessages);
-                OnClientEvent?.Invoke(this, eventArgs);
-            }
+            SendDouyuMessage(new Keepalive() { tick = (Utils.CurrentTimestampUtc() / 1000).ToString() });//取的秒数
         }
 
         private AbstractDouyuMessage[] FilterControlMessage(AbstractDouyuMessage[] douyuMessages)
@@ -252,6 +233,38 @@ namespace Douyu.Net
                 }
             })
             .ToArray();
+        }
+
+        #endregion
+
+        public void SendDouyuMessage(AbstractDouyuMessage clientMessage)
+        {
+            if (socket != null && socket.Connected)
+            {
+                Packet packet = new Packet();
+                packet.Data = Decoders.Instance.Encode(clientMessage);
+                packet.Type = RequestMessageType;
+                SendPacketInternal(packet);
+            }
+        }
+
+        /// <summary>
+        /// 接收到服务器包的处理
+        /// </summary>
+        /// <param name="packets"></param>
+        private void OnPacketsReceived(List<Packet> packets)
+        {
+            if (packets == null || packets.Count == 0) { return; }
+            var datas = packets.Select((packet) => { return packet.Data; });
+            var douyuMessages = Decoders.Instance.Parse(datas.ToArray());
+            douyuMessages = FilterControlMessage(douyuMessages);
+            if (douyuMessages.Length > 0)
+            {
+                BarrageEventArgs eventArgs = new BarrageEventArgs();
+                eventArgs.Action = ClientEventType.NewMessage;
+                eventArgs.Messages = new List<AbstractDouyuMessage>(douyuMessages);
+                OnClientEvent?.Invoke(this, eventArgs);
+            }
         }
 
         internal static object WaitImpl(Task<object> task, int timeout)

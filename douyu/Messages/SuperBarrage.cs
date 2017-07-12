@@ -49,9 +49,12 @@
             }
         }
 
-        public override string ToString()
+        public override MessageSource Source
         {
-            return string.Format("[超级弹幕]{0}", content);
+            get
+            {
+                return MessageSource.Server;
+            }
         }
     }
 }

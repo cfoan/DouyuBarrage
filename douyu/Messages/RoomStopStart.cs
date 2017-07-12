@@ -55,5 +55,13 @@
                 return "rss";
             }
         }
+
+        public override MessageSource Source
+        {
+            get
+            {
+                return MessageSource.Server;
+            }
+        }
     }
 }

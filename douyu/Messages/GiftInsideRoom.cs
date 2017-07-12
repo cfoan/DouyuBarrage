@@ -80,5 +80,13 @@
                 return "spbc";
             }
         }
+
+        public override MessageSource Source
+        {
+            get
+            {
+                return MessageSource.Server;
+            }
+        }
     }
 }
