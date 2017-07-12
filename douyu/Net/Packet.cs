@@ -3,7 +3,7 @@
     /// <summary>
     /// 包结构
     /// </summary>
-    public class Packet
+    internal class Packet
     {
         /// <summary>
         /// 同LengthB

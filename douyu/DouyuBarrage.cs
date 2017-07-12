@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.IO;
 using System.Reflection;
 using System.Text;
 
@@ -86,15 +87,28 @@ namespace Douyu
             Dumps(douyuMessage.ToString());
         }
 
+        private static volatile StringBuilder sb = new StringBuilder();
         public static void Dumps(string log)
         {
-            lock (locker)
+            using (FileStream fs = new FileStream(logPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite))
             {
-                using (System.IO.StreamWriter sw = new System.IO.StreamWriter(logPath, true))
+                if (fs.CanWrite)
                 {
-                    sw.WriteLine(log);
+                    using (StreamWriter sw = new StreamWriter(fs, Encoding.UTF8))
+                    {
+                        if (sb.Length > 0)
+                        {
+                            sw.WriteLine(sb.ToString());
+                            sb.Clear();
+                        }
+                        sw.WriteLine(log);
+                    }
                 }
-            }
+                else
+                {
+                    sb.AppendLine(log);
+                }
+            }      
         }
 
     }

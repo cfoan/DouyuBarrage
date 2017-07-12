@@ -7,51 +7,48 @@ namespace Douyu.Messages
 {
     public class Decoders
     {
-        private Dictionary<object, FastMethodInvoker> invokerMap = new Dictionary<object, FastMethodInvoker>();
-
+        //Func<string, Gift> GiftParser= new GiftDecoder().Decode;
+        private readonly GiftDecoder m_giftDecoder = new GiftDecoder();
+        private readonly BarrageDecoder m_barrageDecoder = new BarrageDecoder();
+        private readonly UserEnterDecoder m_userEnterDecoder = new UserEnterDecoder();
+        private readonly KeepaliveDecoder m_keepaliveDecoder = new KeepaliveDecoder();
+        private readonly SuperBarrageDecoder m_superBarrageDecoder = new SuperBarrageDecoder();
+        private readonly GiftInsideRoomDecoder m_giftInsideRoomDecoder = new GiftInsideRoomDecoder();
+        private readonly RoomStartStopDecoder m_roomStartStopDecoder = new RoomStartStopDecoder();
+        private readonly LoginResponseDecoder m_loginResponseDecoder = new LoginResponseDecoder();
         private static Decoders instance=new Decoders();
 
         public static Decoders Instance { get { return instance; } }
 
         private Decoders()
         {
-            LoadAllDouyuMessageDecoder();
-        }
-
-        private void LoadAllDouyuMessageDecoder()
-        {
-            Assembly assembly = Assembly.GetExecutingAssembly();
-            Type[] types = assembly.GetTypes();
-            foreach (Type type in types)
-            {
-                if (type.GetInterface("IMessageConverter") != null && !type.IsAbstract)
-                {
-                    if (type.BaseType == typeof(DouyuMessageDecoder<>).MakeGenericType(type.BaseType.GetGenericArguments()))
-                    {
-                        var genericArgument = type.BaseType.GetGenericArguments()[0];
-                        if (genericArgument.BaseType == typeof(AbstractDouyuMessage))
-                        {
-                            var douyuMessage = (AbstractDouyuMessage)Activator.CreateInstance(genericArgument);
-                            FastMethodInvoker methodInvoker = new FastMethodInvoker(type.GetConstructor(Type.EmptyTypes).Invoke(null));
-                            methodInvoker.AddMethod("ParseString", type.GetMethod("ParseString"));
-                            invokerMap[douyuMessage.type] = methodInvoker;
-                        }
-                    }
-                }
-            }
 
         }
 
         public AbstractDouyuMessage Parse(string data)
         {
-            AbstractDouyuMessage douyuMessage = null;
             var type = GetMessageType(data);
-            FastMethodInvoker methodInvoker = null;
-            if (invokerMap.TryGetValue(type, out methodInvoker))
+            switch (type)
             {
-                douyuMessage = (AbstractDouyuMessage)methodInvoker.Invoke("ParseString", new object[] { data });
+                case BarrageConstants.TYPE_GIFT:
+                    return m_giftDecoder.Decode(data);
+                case BarrageConstants.TYPE_BARRAGE:
+                    return m_barrageDecoder.Decode(data);
+                case BarrageConstants.TYPE_GIFT_INSIDE_ROOM:
+                    return m_giftInsideRoomDecoder.Decode(data);
+                case BarrageConstants.TYPE_KEEP_ALIVE:
+                    return m_keepaliveDecoder.Decode(data);
+                case BarrageConstants.TYPE_LOGIN_RESPONSE:
+                    return m_loginResponseDecoder.Decode(data);
+                case BarrageConstants.TYPE_ROOM_START_STOP:
+                    return m_roomStartStopDecoder.Decode(data);
+                case BarrageConstants.TYPE_SUPER_BARRAGE:
+                    return m_superBarrageDecoder.Decode(data);
+                case BarrageConstants.TYPE_USER_ENTER:
+                    return m_userEnterDecoder.Decode(data);
+
             }
-            return douyuMessage;
+            throw new InvalidOperationException("unknown message type");
         }
 
         public AbstractDouyuMessage[] Parse(string[] datas)
@@ -59,13 +56,7 @@ namespace Douyu.Messages
             List<AbstractDouyuMessage> douyuMessagesLs = new List<AbstractDouyuMessage>(datas.Length);
             Array.ForEach(datas, (data) =>
             {
-                var type = GetMessageType(data);
-                FastMethodInvoker methodInvoker = null;
-                if (invokerMap.TryGetValue(type, out methodInvoker))
-                {
-                    var douyuMessage = (AbstractDouyuMessage)methodInvoker.Invoke("ParseString", new object[] { data });
-                    douyuMessagesLs.Add(douyuMessage);
-                }
+                douyuMessagesLs.Add(Parse(data));
             });
             return douyuMessagesLs.ToArray();
         }
@@ -85,47 +76,19 @@ namespace Douyu.Messages
         }
     }
 
-    public class GiftDecoder : DouyuMessageDecoder<Gift> { }
+    internal class GiftDecoder : DouyuMessageDecoder<Gift> { }
 
-    public class BarrageDecoder : DouyuMessageDecoder<Barrage> { }
+    internal class BarrageDecoder : DouyuMessageDecoder<Barrage> { }
 
-    public class UserEnterDecoder : DouyuMessageDecoder<UserEnter> { }
+    internal class UserEnterDecoder : DouyuMessageDecoder<UserEnter> { }
 
-    public class KeepaliveDecoder : DouyuMessageDecoder<Keepalive> { }
+    internal class KeepaliveDecoder : DouyuMessageDecoder<Keepalive> { }
 
-    public class SuperBarrageDecoder : DouyuMessageDecoder<SuperBarrage> { }
+    internal class SuperBarrageDecoder : DouyuMessageDecoder<SuperBarrage> { }
 
-    public class GiftInsideRoomDecoder : DouyuMessageDecoder<GiftInsideRoom> { }
+    internal class GiftInsideRoomDecoder : DouyuMessageDecoder<GiftInsideRoom> { }
 
-    public class RoomStartStopDecoder : DouyuMessageDecoder<RoomStartStop> { }
+    internal class RoomStartStopDecoder : DouyuMessageDecoder<RoomStartStop> { }
 
-    public class LoginResponseDecoder : DouyuMessageDecoder<LoginResponse> { }
-
-    internal class FastMethodInvoker
-    {
-        private object target;
-        private HybridDictionary methods = new HybridDictionary();
-
-        public FastMethodInvoker(object target)
-        {
-            if (target == null) { throw new ArgumentNullException("target"); }
-            this.target = target;
-        }
-
-        public void AddMethod(string name, MethodInfo info)
-        {
-            foreach (var key in methods.Keys)
-            {
-                if (name == (string)key) { return; }
-            }
-            methods[name] = info;
-        }
-
-        public object Invoke(string name, object[] parameters)
-        {
-            var method = methods[name] as MethodInfo;
-            if (method == null) { throw new ArgumentException("method name not found"); }
-            return method.Invoke(target, parameters);
-        }
-    }
+    internal class LoginResponseDecoder : DouyuMessageDecoder<LoginResponse> { }
 }

@@ -13,7 +13,7 @@ namespace Douyu.Net
     /// <summary>
     /// client动作类型
     /// </summary>
-    public enum ActionType
+    public enum ClientEventType
     {
         Connect,Disconnect,NewMessage
     }
@@ -84,7 +84,7 @@ namespace Douyu.Net
                             {
                                 socket = tmp;
                                 BarrageEventArgs eventArgs = new BarrageEventArgs();
-                                eventArgs.Action = ActionType.Connect;
+                                eventArgs.Action = ClientEventType.Connect;
                                 OnClientEvent?.Invoke(this, eventArgs);
                                 break;
                             }
@@ -157,7 +157,7 @@ namespace Douyu.Net
                 isConnected = false;
                 bytesUnhandledLastTime = 0;
                 BarrageEventArgs eventArgs = new BarrageEventArgs();
-                eventArgs.Action = ActionType.Disconnect;
+                eventArgs.Action = ClientEventType.Disconnect;
                 OnClientEvent?.Invoke(this, eventArgs);
             }
             OnClientEvent = null;
@@ -224,7 +224,7 @@ namespace Douyu.Net
             if (douyuMessages.Length > 0)
             {
                 BarrageEventArgs eventArgs = new BarrageEventArgs();
-                eventArgs.Action = ActionType.NewMessage;
+                eventArgs.Action = ClientEventType.NewMessage;
                 eventArgs.Messages = new List<AbstractDouyuMessage>(douyuMessages);
                 OnClientEvent?.Invoke(this, eventArgs);
             }
@@ -303,9 +303,8 @@ namespace Douyu.Net
                     Buffer.BlockCopy(receiveBuffer, handledBytes, receiveBuffer, 0, total - handledBytes);
                     bytesUnhandledLastTime = total - handledBytes;
                     var writeIndex = bytesUnhandledLastTime;
-                    var countCanWrite = receiveBuffer.Length - writeIndex;
                     OnPacketsReceived(pkts);
-                    socket.BeginReceive(receiveBuffer, writeIndex, countCanWrite, SocketFlags.None, ReceiveComplted, socket);
+                    socket.BeginReceive(receiveBuffer, writeIndex, receiveBuffer.Length - writeIndex, SocketFlags.None, ReceiveComplted, socket);
                 }
                 else if (bytesTransferredThisTime <= 0)
                 {
@@ -462,7 +461,7 @@ namespace Douyu.Net
     /// </summary>
     public class BarrageEventArgs : EventArgs
     {
-        public ActionType Action { get; set; }
+        public ClientEventType Action { get; set; }
 
         public List<AbstractDouyuMessage> Messages { get; set; }
 

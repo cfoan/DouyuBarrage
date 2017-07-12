@@ -94,7 +94,7 @@ namespace Douyu
 
         private static void HandleBarrageClientEvent(object sender, BarrageEventArgs e)
         {
-            if (e.Action == ActionType.NewMessage)
+            if (e.Action == ClientEventType.NewMessage)
             {
                 DouyuBarrage.Instance.ShowBarrageView(e.Messages.ToArray());
             }

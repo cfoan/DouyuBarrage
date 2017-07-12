@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Reflection;
 
@@ -12,18 +13,25 @@ namespace Douyu.Messages
         string Name { get; }
     }
 
+    public interface IMessageConverter<TRaw,TDouyuMessage> : IMessageConverter
+    {
+        TDouyuMessage Decode(TRaw data);
+
+        TRaw Encode(TDouyuMessage message);
+    }
+
     /// <summary>
     /// 斗鱼消息解码抽象类
     /// </summary>
     /// <typeparam name="TDouyuMessage"></typeparam>
-    public abstract class DouyuMessageDecoder<TDouyuMessage> : IMessageConverter
+    public abstract class DouyuMessageDecoder<TDouyuMessage> : IMessageConverter<string,TDouyuMessage>
         where TDouyuMessage : AbstractDouyuMessage, new()
     {
-        protected Dictionary<string, PropertyInfo> propertiesMap;
+        protected ConcurrentDictionary<string, PropertyInfo> propertiesMap;
 
         public DouyuMessageDecoder()
         {
-            propertiesMap = new Dictionary<string, PropertyInfo>();
+            propertiesMap = new ConcurrentDictionary<string, PropertyInfo>();
             var properties = typeof(TDouyuMessage).GetProperties();
             Array.ForEach(properties, (property) =>
              {
@@ -55,13 +63,13 @@ namespace Douyu.Messages
         /// </summary>
         /// <param name="pre"></param>
         /// <returns>反转义后的数据</returns>
-        protected string Unescape(string pre)
+        public static string Unescape(string pre)
         {
             if (pre == null) { throw new ArgumentNullException(); }
             return pre.Replace("@S", "/").Replace("@A", "@");
         }
 
-        protected string Escape(string pre)
+        public static string Escape(string pre)
         {
             if (pre == null) { throw new ArgumentNullException(); }
             return pre.Replace("/", "@S").Replace("@", "@A");
@@ -72,7 +80,7 @@ namespace Douyu.Messages
         /// </summary>
         /// <param name="douyuMessage"></param>
         /// <returns>斗鱼消息</returns>
-        public TDouyuMessage ParseString(string douyuMessage)
+        public TDouyuMessage Decode(string douyuMessage)
         {
             TDouyuMessage m = new TDouyuMessage();
             m.raw = douyuMessage;
@@ -84,6 +92,11 @@ namespace Douyu.Messages
                 SetPropertyValue(m, key, value);
             }
             return m;
+        }
+
+        public string Encode(TDouyuMessage message)
+        {
+            throw new NotImplementedException();
         }
     }
 }
