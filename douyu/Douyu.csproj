@@ -60,7 +60,7 @@
     <Compile Include="Messages\SuperBarrage.cs" />
     <Compile Include="Messages\UserEnter.cs" />
     <Compile Include="Net\BarrageConnection.cs" />
-    <Compile Include="DouyuBarrage.cs" />
+    <Compile Include="Console.cs" />
     <Compile Include="Net\BarrageClient.cs" />
     <Compile Include="Net\Packet.cs" />
     <Compile Include="Program.cs" />

@@ -52,7 +52,7 @@ namespace Douyu.Net
         public BarrageClient EnterRoom(string roomId, string groupId = "-9999")
         {
 #if DEBUG
-            Console.WriteLine("try enter room {0}...", roomId);
+            System.Console.WriteLine("try enter room {0}...", roomId);
 #endif
             JoinGroup joinGroup = new JoinGroup();
             joinGroup.gid = groupId;
