@@ -20,7 +20,7 @@ namespace Douyu
         /// <summary>
         /// 客户端的消息/服务端的消息
         /// </summary>
-        public abstract MessageSource Source { get; }
+        public abstract MessageSource source { get; }
 
         /// <summary>
         /// 原始消息

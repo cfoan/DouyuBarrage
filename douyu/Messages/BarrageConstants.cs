@@ -8,7 +8,7 @@
 
         public const string TYPE_LOGIN_REQUEST = "loginreq";
 
-        public const string TYPE_GIFT = "dgp";
+        public const string TYPE_GIFT = "dgb";
 
         public const string TYPE_KEEP_ALIVE = "keepalive";
 

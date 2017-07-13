@@ -47,7 +47,8 @@
     <Compile Include="Messages\AbstractDouyuMessage.cs" />
     <Compile Include="Messages\Barrage.cs" />
     <Compile Include="Messages\BarrageConstants.cs" />
-    <Compile Include="Messages\Decoders.cs" />
+    <Compile Include="Messages\Converters.cs" />
+    <Compile Include="Messages\Error.cs" />
     <Compile Include="Messages\MessageConverter.cs" />
     <Compile Include="Messages\Gift.cs" />
     <Compile Include="Messages\GiftInsideRoom.cs" />
@@ -58,9 +59,9 @@
     <Compile Include="Messages\RoomStopStart.cs" />
     <Compile Include="Messages\SuperBarrage.cs" />
     <Compile Include="Messages\UserEnter.cs" />
-    <Compile Include="Net\BarrageClient.cs" />
+    <Compile Include="Net\BarrageConnection.cs" />
     <Compile Include="DouyuBarrage.cs" />
-    <Compile Include="Net\BarrageClientWrapper.cs" />
+    <Compile Include="Net\BarrageClient.cs" />
     <Compile Include="Net\Packet.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Utils.cs" />

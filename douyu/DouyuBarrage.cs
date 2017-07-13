@@ -15,32 +15,23 @@ namespace Douyu
     {
         private static object locker = new object();
 
-        private static DouyuBarrage instance = new DouyuBarrage();
-
-        public static DouyuBarrage Instance
-        {
-            get { return instance; }
-        }
-
-        private DouyuBarrage() { }
-
         /// <summary>
         /// 控制台打印，如果传入的参数为null,则不打印
         /// </summary>
         /// <param name="douyuMessage"></param>
-        public void ShowBarrageView(AbstractDouyuMessage douyuMessage)
+        public static void ShowBarrageView(AbstractDouyuMessage douyuMessage)
         {
             if (douyuMessage == null) { return; }
             ShowBarrageViewInternal(douyuMessage);
         }
 
-        public void ShowBarrageView(AbstractDouyuMessage[] douyuMessages)
+        public static void ShowBarrageView(AbstractDouyuMessage[] douyuMessages)
         {
             if (douyuMessages == null) { return; }
             ShowBarrageViewInternal(douyuMessages);
         }
 
-        internal void ShowBarrageViewInternal(params AbstractDouyuMessage[]douyuMessages)
+        internal static  void ShowBarrageViewInternal(params AbstractDouyuMessage[]douyuMessages)
         {
             if (douyuMessages == null) { return; }
             StringBuilder sb = new StringBuilder();
@@ -55,7 +46,7 @@ namespace Douyu
             Console.Write(sb.ToString());
         }
 
-        internal string MessageView(AbstractDouyuMessage douyuMessage)
+        internal static string MessageView(AbstractDouyuMessage douyuMessage)
         {
             switch (douyuMessage.type)
             {

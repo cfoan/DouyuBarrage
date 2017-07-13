@@ -116,7 +116,7 @@
             }
         }
 
-        public override MessageSource Source
+        public override MessageSource source
         {
             get
             {

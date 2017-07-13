@@ -1,4 +1,5 @@
-﻿using Douyu.Net;
+﻿using Douyu.Messages;
+using Douyu.Net;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,40 +19,35 @@ namespace Douyu
              * */
             Console.WriteLine("接下来要做什么(输入对应的数字) \r\n1.输入房间号进入房间\r\n2.输入url进入房间 \r\n3.exit");
             var key = Console.ReadLine();
+
             if (key.Length >= 0)
             {
+                List<string> roomIds = new List<string>(8);
                 switch ((int)key[0])
                 {
                     case 49:
                         Console.WriteLine("输入要进入的房间号");
                         var read1 = Console.ReadLine();
                         var roomIds1 = read1.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
-                        var validRoomIds1 = new string[roomIds1.Length];
-                        var index1 = 0; var tr = 0;
+                        var tr = 0;
                         foreach (var roomId in roomIds1)
                         {
                             if (!int.TryParse(roomId, out tr))
                             {
                                 continue;
                             }
-                            validRoomIds1[index1++] = roomId;
+                            roomIds.Add(roomId);
                         }
-                        if (index1 == 0)
+                        if (roomIds.Count == 0)
                         {
                             Console.WriteLine("can't find any valid roomid,press any key to exit");
                             break;
                         }
-                        Array.ForEach(validRoomIds1.Take(index1).ToArray(), (roomId) =>
-                         {
-                             clients.Add(new BarrageClient().Start(HandleBarrageClientEvent).EnterRoom(roomId));
-                         });
                         break;
                     case 50:
                         Console.WriteLine("输入要进入的房间网址");
                         var read2 = Console.ReadLine();
-                        var urls = read2.Split(new char[] { '|' },StringSplitOptions.RemoveEmptyEntries);
-                        var validRoomIds2 = new string[urls.Length];
-                        var index = 0;
+                        var urls = read2.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
                         foreach (var url in urls)
                         {
                             try
@@ -62,27 +58,45 @@ namespace Douyu
                                     Console.WriteLine("获取房间号失败");
                                     continue;
                                 }
-                                validRoomIds2[index++] = t;
+                                roomIds.Add(t);
                             }
                             catch
                             {
                                 continue;
                             }
                         }
-                        if (index == 0)
+                        if (roomIds.Count == 0)
                         {
                             Console.WriteLine("can't recognize any room,press any key to exit");
                             break;
                         }
-                        Array.ForEach(validRoomIds2.Take(index).ToArray(), (roomId) =>
-                         {
-                             clients.Add(new BarrageClient().Start(HandleBarrageClientEvent).EnterRoom(roomId));
-                         });
+
                         break;
                     default:
                         break;
 
+
+
                 }
+
+                roomIds.ForEach((roomId) =>
+                {
+                    clients.Add(new BarrageClient()
+                        .Start()
+                        .AddHandler(BarrageConstants.TYPE_SUPER_BARRAGE, (message) =>
+                        {
+                            DouyuBarrage.ShowBarrageView(message);
+                        })
+                        .AddHandler(BarrageConstants.TYPE_GIFT, (message) =>
+                        {
+                            DouyuBarrage.ShowBarrageView(message);
+                        })
+                        .AddHandler(BarrageConstants.TYPE_BARRAGE, (message) =>
+                        {
+                            DouyuBarrage.ShowBarrageView(message);
+                        })
+                        .EnterRoom(roomId));
+                });
             }
             Console.ReadKey();
             clients.ForEach((client) =>
@@ -90,14 +104,6 @@ namespace Douyu
                 client.Stop();
             });
 
-        }
-
-        private static void HandleBarrageClientEvent(object sender, BarrageEventArgs e)
-        {
-            if (e.Action == ClientEventType.NewMessage)
-            {
-                DouyuBarrage.Instance.ShowBarrageView(e.Messages.ToArray());
-            }
         }
     }
 }
