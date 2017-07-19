@@ -31,15 +31,15 @@ namespace Douyu.Net
         private const string DouyuDomain = "danmu.douyutv.com";//or openbarrage.douyutv.com 
         private readonly int[] DouyuPorts = new int[] { 8061, 8062, 12601, 12602 };
         
-        private byte[] receiveBuffer;
-        private Socket socket;
-        private volatile bool isConnected;
+        private byte[] m_receiveBuffer;
+        private Socket m_socket;
+        private volatile bool m_isConnected;
 
-        public bool Connected => isConnected;
+        public bool Connected => m_isConnected;
 
         public BarrageConnection()
         {
-            receiveBuffer = new byte[ReceiveBufferSize];
+            m_receiveBuffer = new byte[ReceiveBufferSize];
         }
 
         /// <summary>
@@ -47,9 +47,9 @@ namespace Douyu.Net
         /// </summary>
         /// <param name="eventHandler">收到的消息的处理</param>
         /// <returns>自己</returns>
-        public BarrageConnection Connect()
+        public BarrageConnection ConnectToServer()
         {
-            if (isConnected) { throw new InvalidOperationException(".. is connected"); }
+            if (m_isConnected) { return this; }
             var ips = new IPAddress[0];
             try
             {
@@ -75,9 +75,9 @@ namespace Douyu.Net
                         {
                             tmp.EndConnect(asyncState); // checks for exception
 
-                            if (isConnected = tmp.Connected)
+                            if (m_isConnected = tmp.Connected)
                             {
-                                socket = tmp;
+                                m_socket = tmp;
                                 ThreadPool.QueueUserWorkItem((state) =>
                                 {
                                     OnConnectToServer?.Invoke();
@@ -101,11 +101,11 @@ namespace Douyu.Net
                          * */
                     }
                 }
-                if (isConnected) { break; }
+                if (m_isConnected) { break; }
             }
 
-            if (!isConnected) { throw new Exception("Unable to connect to server"); }
-            socket.BeginReceive(receiveBuffer, 0, receiveBuffer.Length, SocketFlags.None, ReceiveComplted, socket);
+            if (!m_isConnected) { throw new Exception("Unable to connect to server"); }
+            m_socket.BeginReceive(m_receiveBuffer, 0, m_receiveBuffer.Length, SocketFlags.None, ReceiveComplted, m_socket);
             return this;
         }
 
@@ -114,12 +114,12 @@ namespace Douyu.Net
         /// </summary>
         public void Close()
         {
-            if (socket != null)
+            if (m_socket != null)
             {
                 try
                 {
-                    socket.Close();
-                    socket.Dispose();
+                    m_socket.Close();
+                    m_socket.Dispose();
                 }
                 catch
                 {
@@ -128,9 +128,9 @@ namespace Douyu.Net
                      * */
                 }
             }
-            if (isConnected)
+            if (m_isConnected)
             {
-                isConnected = false;
+                m_isConnected = false;
                 bytesUnhandledLastTime = 0;
                 ThreadPool.QueueUserWorkItem((state) =>
                 {
@@ -165,8 +165,8 @@ namespace Douyu.Net
                 {
                     int handledBytes = 0;
                     var total = bytesTransferredThisTime + bytesUnhandledLastTime;
-                    var pkts = ReadPackets(receiveBuffer, 0, total, out handledBytes);
-                    Buffer.BlockCopy(receiveBuffer, handledBytes, receiveBuffer, 0, total - handledBytes);
+                    var pkts = ReadPackets(m_receiveBuffer, 0, total, out handledBytes);
+                    Buffer.BlockCopy(m_receiveBuffer, handledBytes, m_receiveBuffer, 0, total - handledBytes);
                     bytesUnhandledLastTime = total - handledBytes;
                     var writeIndex = bytesUnhandledLastTime;
                     ThreadPool.QueueUserWorkItem((state) =>
@@ -174,7 +174,7 @@ namespace Douyu.Net
                         OnDataArrive?.Invoke(pkts.ToArray());
                     }, null);
                     
-                    socket.BeginReceive(receiveBuffer, writeIndex, receiveBuffer.Length - writeIndex, SocketFlags.None, ReceiveComplted, socket);
+                    socket.BeginReceive(m_receiveBuffer, writeIndex, m_receiveBuffer.Length - writeIndex, SocketFlags.None, ReceiveComplted, socket);
                 }
                 else if (bytesTransferredThisTime <= 0)
                 {
@@ -229,7 +229,7 @@ namespace Douyu.Net
         {
             byte[] buffer = new byte[SendBufferSize];
             var totalBytes = WritePacket(packet, ref buffer);
-            DoSend(socket, buffer, 0, totalBytes);
+            DoSend(m_socket, buffer, 0, totalBytes);
         }
 
         /// <summary>
@@ -250,6 +250,7 @@ namespace Douyu.Net
 #if DEBUG
                 System.Console.WriteLine(ex.Message);
 #endif
+                throw ex;
             }
         }
 

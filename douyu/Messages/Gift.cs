@@ -127,6 +127,7 @@
 
     internal class GiftUtil
     {
+        internal const string GiftNameUnknown = "unknown";
         public static string GiftName(string id)
         {
             switch (id)
@@ -174,7 +175,7 @@
                 case "713":
                     return "辣眼睛";
                 default:
-                    return "unknown";
+                    return GiftNameUnknown;
             }
         }
     }

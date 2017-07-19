@@ -14,16 +14,21 @@ namespace Douyu.Net
         public Action ConnectHandler;
         public Action DisconnectHandler;
         public Action OnDataArriveHandler;
-
-        public List<Func<AbstractDouyuMessage, bool>> m_filters;
-        public ConcurrentDictionary<string, List<Action<AbstractDouyuMessage>>> m_TypeToHandler;
+        
         private const int LoginTimeout = 5000;
         private const int KeepAliveTimeout = 45 * 1000;
-        private BarrageConnection m_client;
+
         private Timer m_timer;
         private object m_locker;
+        private string m_curRoomId;
         private TaskCompletionSource<object> loginTcs;
-        private Action<LoginResponse> loginResponseHandler;
+        private readonly BarrageConnection m_client;
+        private readonly Action<LoginResponse> m_onLoginResponse;
+        private readonly List<Func<AbstractDouyuMessage, bool>> m_filters;
+        private readonly ConcurrentDictionary<string, List<Action<AbstractDouyuMessage>>> m_TypeToHandler;
+
+        public string RoomId { get { return m_curRoomId; } }
+
         public BarrageClient()
         {
             m_locker = new object();
@@ -35,36 +40,44 @@ namespace Douyu.Net
             m_client.OnConnectToServer += m_client_OnConnectToServer;
             m_client.OnDisconnectFromServer += m_client_OnDisconnectFromServer;
 
-            loginResponseHandler=(message)=> loginTcs?.SetResult(true);
-            AddHandler(BarrageConstants.TYPE_LOGIN_RESPONSE, (message) =>loginResponseHandler?.Invoke((LoginResponse)message));
+            m_onLoginResponse=(message)=> loginTcs?.SetResult(true);
+            AddHandler((message) =>m_onLoginResponse?.Invoke((LoginResponse)message), BarrageConstants.TYPE_LOGIN_RESPONSE);
         }
 
-        public BarrageClient Start()
+        public BarrageClient Connect()
         {
-            if (m_client.Connected) { return this; }
-            m_client.Connect();
-            m_client.Send(Converters.Instance.Encode(new LoginRequest()));
+            m_client.ConnectToServer();
+            WaitForLogin();
+            return this;
+        }
+
+        private void WaitForLogin()
+        {
+            Send(new LoginRequest());
             loginTcs = new TaskCompletionSource<object>();
             WaitImpl(loginTcs.Task, LoginTimeout);
-            return this;
         }
 
         public BarrageClient EnterRoom(string roomId, string groupId = "-9999")
         {
+            if (string.IsNullOrWhiteSpace(roomId))
+                throw new ArgumentNullException("roomId");
 #if DEBUG
             System.Console.WriteLine("try enter room {0}...", roomId);
 #endif
+            m_curRoomId = roomId;
             JoinGroup joinGroup = new JoinGroup();
             joinGroup.gid = groupId;
             joinGroup.rid = roomId;
-            m_client.Send(Converters.Instance.Encode(joinGroup));
+            Send(joinGroup);
             return this;
         }
 
         private void Heatbeat(object sender)
         {
-            var keepAlive = new Keepalive() { tick = (Utils.CurrentTimestampUtc() / 1000).ToString() };//取的秒数
-            m_client.Send(Converters.Instance.Encode(keepAlive));
+            var keepAlive = new Keepalive();
+            keepAlive.tick=(Utils.CurrentTimestampUtc() / 1000).ToString();//取的秒数
+            Send(keepAlive);
         }
 
         public void Stop()
@@ -104,7 +117,7 @@ namespace Douyu.Net
              });
         }
 
-        public BarrageClient AddHandler(string type,Action<AbstractDouyuMessage> handler)
+        public BarrageClient AddHandler(Action<AbstractDouyuMessage> handler, string type)
         {
             lock (m_locker)
             {
@@ -124,7 +137,16 @@ namespace Douyu.Net
             return this;
         }
 
-        public BarrageClient RemoveHandler(string type,Action<AbstractDouyuMessage> handler)
+        public BarrageClient AddHandler(Action<AbstractDouyuMessage> handler,params string[] barrageTypeNames)
+        {
+            Array.ForEach(barrageTypeNames, (typeName) =>
+             {
+                 AddHandler(handler, typeName);
+             });
+            return this;
+        }
+
+        public BarrageClient RemoveHandler(Action<AbstractDouyuMessage> handler,string type)
         {
             lock (m_locker)
             {
@@ -135,6 +157,11 @@ namespace Douyu.Net
                 }
             }
             return this;
+        }
+
+        internal void Send(AbstractDouyuMessage message)
+        {
+            m_client.Send(Converters.Instance.Encode(message));
         }
 
         internal static object WaitImpl(Task<object> task, int timeout)

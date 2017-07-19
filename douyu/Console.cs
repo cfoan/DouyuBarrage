@@ -1,9 +1,5 @@
 ﻿using Douyu.Messages;
 using System;
-using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.IO;
-using System.Reflection;
 using System.Text;
 
 namespace Douyu
@@ -19,32 +15,36 @@ namespace Douyu
         /// <param name="douyuMessage"></param>
         public static void PrintBarrage(AbstractDouyuMessage douyuMessage)
         {
-            if (douyuMessage == null) { return; }
+            if (douyuMessage == null)
+                return; 
+
             ShowBarrageViewInternal(douyuMessage);
         }
 
         public static void PrintBarrage(AbstractDouyuMessage[] douyuMessages)
         {
-            if (douyuMessages == null) { return; }
+            if (douyuMessages == null)
+                return; 
+
             ShowBarrageViewInternal(douyuMessages);
         }
 
         private static void ShowBarrageViewInternal(params AbstractDouyuMessage[] douyuMessages)
         {
-            if (douyuMessages == null) { return; }
+            if (douyuMessages == null)
+                return;
+
             StringBuilder sb = new StringBuilder();
             Array.ForEach(douyuMessages, (msg) =>
              {
-                 var msgView = MessageView(msg);
+                 var msgView = MessageToString(msg);
                  if (!string.IsNullOrWhiteSpace(msgView))
-                 {
                      sb.AppendLine(msgView);
-                 }
              });
             System.Console.Write(sb.ToString());
         }
 
-        private static string MessageView(AbstractDouyuMessage douyuMessage)
+        private static string MessageToString(AbstractDouyuMessage douyuMessage)
         {
             switch (douyuMessage.type)
             {
@@ -53,11 +53,10 @@ namespace Douyu
                     return string.Format("[弹幕]{0}：{1}", chatMsg.nn, chatMsg.txt);
                 case BarrageConstants.TYPE_GIFT:
                     var gift = douyuMessage as Gift;
-                    if (GiftUtil.GiftName(gift.gfid) == "unknown")
-                    {
+                    if (GiftUtil.GiftName(gift.gfid) == GiftUtil.GiftNameUnknown)
                         Utils.Dumps(gift.raw);
-                    }
-                    var giftInfo = string.Format("【{0}】 {1}", GiftUtil.GiftName(gift.gfid), !string.IsNullOrWhiteSpace(gift.hits) ?
+
+                    var giftInfo = string.Format("[{0}] {1}", GiftUtil.GiftName(gift.gfid), !string.IsNullOrWhiteSpace(gift.hits) ?
                         string.Format("{0}连击", gift.hits) : "");
                     return string.Format("[礼物]来自{0} {1}", gift.nn, giftInfo);
                 case BarrageConstants.TYPE_SUPER_BARRAGE:
