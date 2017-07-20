@@ -128,6 +128,7 @@
     internal class GiftUtil
     {
         internal const string GiftNameUnknown = "unknown";
+
         public static string GiftName(string id)
         {
             switch (id)

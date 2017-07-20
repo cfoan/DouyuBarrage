@@ -11,10 +11,11 @@ namespace Douyu.Net
 {
     public class BarrageClient
     {
-        public Action ConnectHandler;
-        public Action DisconnectHandler;
-        public Action OnDataArriveHandler;
-        
+        private Action m_connectHandler;
+        private Action m_disconnectHandler;
+        private Action m_dataArriveHandler;
+        private Action<Exception> m_exceptionHandler;
+
         private const int LoginTimeout = 5000;
         private const int KeepAliveTimeout = 45 * 1000;
 
@@ -26,6 +27,7 @@ namespace Douyu.Net
         private readonly Action<LoginResponse> m_onLoginResponse;
         private readonly List<Func<AbstractDouyuMessage, bool>> m_filters;
         private readonly ConcurrentDictionary<string, List<Action<AbstractDouyuMessage>>> m_TypeToHandler;
+        
 
         public string RoomId { get { return m_curRoomId; } }
 
@@ -48,6 +50,7 @@ namespace Douyu.Net
         {
             m_client.ConnectToServer();
             WaitForLogin();
+            m_timer.Change(0, KeepAliveTimeout);
             return this;
         }
 
@@ -85,16 +88,33 @@ namespace Douyu.Net
             m_client.Close();
         }
 
+        public BarrageClient ConnectHandler(Action handler)
+        {
+            m_connectHandler = handler;
+            return this;
+        }
+
+        public BarrageClient DisconnectHandler(Action handler)
+        {
+            m_disconnectHandler = handler;
+            return this;
+        }
+
+        public BarrageClient ExceptionHandler(Action<Exception> handler)
+        {
+            m_exceptionHandler = handler;
+            return this;
+        }
+
         private void m_client_OnDisconnectFromServer()
         {
             m_timer.Change(Timeout.Infinite, Timeout.Infinite);
-            DisconnectHandler?.Invoke();
+            m_disconnectHandler?.Invoke();
         }
 
         private void m_client_OnConnectToServer()
         {
-            m_timer.Change(0, KeepAliveTimeout);
-            ConnectHandler?.Invoke();
+            m_connectHandler?.Invoke();
         }
 
         private void m_client_OnDataArrive(Packet[] packets)
@@ -115,6 +135,11 @@ namespace Douyu.Net
                      });
                  }
              });
+        }
+
+        private void OnException(Exception ex)
+        {
+            m_exceptionHandler?.Invoke(ex);
         }
 
         public BarrageClient AddHandler(Action<AbstractDouyuMessage> handler, string type)
@@ -161,6 +186,12 @@ namespace Douyu.Net
 
         internal void Send(AbstractDouyuMessage message)
         {
+            if (!m_client.Connected)
+            {
+                OnException(new BarrageClientNotConnectedToServerException());
+                return;
+            }
+
             m_client.Send(Converters.Instance.Encode(message));
         }
 
@@ -190,5 +221,7 @@ namespace Douyu.Net
             }
             return task.Result;
         }
+
+        public class BarrageClientNotConnectedToServerException : Exception { }
     }
 }

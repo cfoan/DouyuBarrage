@@ -190,7 +190,7 @@ namespace Douyu.Net
             catch (SocketException ex)
             {
 #if DEBUG
-                System.Console.WriteLine(ex.StackTrace);
+                System.Console.WriteLine($"{ex.Message},{ex.StackTrace}");
 #endif
                 Close();
             }

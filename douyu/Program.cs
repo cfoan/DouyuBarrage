@@ -78,9 +78,11 @@ namespace Douyu
 
                 roomIds.ForEach((roomId) =>
                 {
-                    var client = new BarrageClient()
+                    var client = new BarrageClient();
+                    client.DisconnectHandler(() => client.Connect())
+                        .ExceptionHandler((ex) => { })
                         .Connect()
-                        .AddHandler((message) => Console.PrintBarrage(message),new string[] { BarrageConstants.TYPE_SUPER_BARRAGE, BarrageConstants.TYPE_GIFT, BarrageConstants.TYPE_BARRAGE })
+                        .AddHandler((message) => Console.PrintBarrage(message), new string[] { BarrageConstants.TYPE_SUPER_BARRAGE, BarrageConstants.TYPE_GIFT, BarrageConstants.TYPE_BARRAGE })
                         .EnterRoom(roomId);
                     clients.Add(client);
                 });
