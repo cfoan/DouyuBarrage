@@ -25,7 +25,6 @@ namespace Douyu.Net
         private TaskCompletionSource<object> loginTcs;
         private readonly BarrageConnection m_client;
         private readonly Action<LoginResponse> m_onLoginResponse;
-        private readonly List<Func<AbstractDouyuMessage, bool>> m_filters;
         private readonly ConcurrentDictionary<string, List<Action<AbstractDouyuMessage>>> m_TypeToHandler;
         
 
@@ -35,7 +34,6 @@ namespace Douyu.Net
         {
             m_locker = new object();
             m_timer = new Timer(Heatbeat, null, Timeout.Infinite, Timeout.Infinite);
-            m_filters = new List<Func<AbstractDouyuMessage, bool>>();
             m_TypeToHandler = new ConcurrentDictionary<string, List<Action<AbstractDouyuMessage>>>();
             m_client = new BarrageConnection();
             m_client.OnDataArrive += m_client_OnDataArrive;
