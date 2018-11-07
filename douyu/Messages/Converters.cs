@@ -50,7 +50,8 @@ namespace Douyu.Messages
                     return m_userEnterDecoder.Decode(data);
 
             }
-            System.Console.WriteLine(data);
+            //todo 其他未知类型
+            //System.Console.WriteLine(data);
             return null;
             //throw new InvalidOperationException("Decode:unknown message type");
         }

@@ -41,7 +41,7 @@ namespace Douyu
                  if (!string.IsNullOrWhiteSpace(msgView))
                      sb.AppendLine(msgView);
              });
-            //System.Console.Write(sb.ToString());
+            System.Console.Write(sb.ToString());
         }
 
         private static string MessageToString(AbstractDouyuMessage douyuMessage)
