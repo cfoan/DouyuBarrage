@@ -10,6 +10,10 @@ namespace Douyu
     {
         private const string RegexRoomId = "\"room_id\":(\\d*),";
         private const string RegexRoomId2 = "\"online_id\":\"(\\d*)\",";
+        private const string RegexRoomId3 = "onlineid=(\\d*)";
+
+        private const string REGEX_SERVER = "%7B%22ip%22%3A%22(.*?)%22%2C%22port%22%3A%22(.*?)%22%7D%2C";
+
         //webGetRoom :http://www.douyu.com/specific/webMGetRoom/{roomId}
         //isRecording: http://www.douyu.com/swf_api/getRoomRecordStatus/
         /// <summary>
@@ -47,19 +51,38 @@ namespace Douyu
 
         public static string GetRoomId2(Uri uri)
         {
+            string ip = null;
             WebRequest request = WebRequest.Create(uri);
+
             using (var sr = new StreamReader(request.GetResponse().GetResponseStream()))
             {
                 var response = sr.ReadToEnd();
+                Regex regexIp = new Regex(REGEX_SERVER, RegexOptions.IgnoreCase);
+
+                
+                var match = regexIp.Match(response);
+
+                if (match.Success && match.Groups.Count > 1)
+                {
+                    ip= match.Groups[1].Value;
+                }
+
                 Regex regex = new Regex(RegexRoomId, RegexOptions.IgnoreCase);
-                Regex regex2 = new Regex(RegexRoomId2, RegexOptions.IgnoreCase);
-                var match=regex.Match(response);
+                match = regex.Match(response);
                 if (match.Success&& match.Groups.Count>1)
                 {
                     return match.Groups[1].Value;
                 }
 
+                Regex regex2 = new Regex(RegexRoomId2, RegexOptions.IgnoreCase);
                 match = regex2.Match(response);
+                if (match.Success && match.Groups.Count > 1)
+                {
+                    return match.Groups[1].Value;
+                }
+
+                Regex regex3 = new Regex(RegexRoomId3, RegexOptions.IgnoreCase);
+                match = regex3.Match(response);
                 if (match.Success && match.Groups.Count > 1)
                 {
                     return match.Groups[1].Value;
@@ -67,6 +90,11 @@ namespace Douyu
             }
             return "";
         }
+
+        //public string getServerIp()
+        //{
+
+        //}
 
 
         public static void GetRoom()
