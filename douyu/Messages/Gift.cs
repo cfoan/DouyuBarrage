@@ -127,6 +127,7 @@
 
     internal class GiftUtil
     {
+        //todo 网页抓取当前页面的礼物信息
         internal const string GiftNameUnknown = "unknown";
 
         public static string GiftName(string id)

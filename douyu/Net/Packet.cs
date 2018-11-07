@@ -16,7 +16,7 @@
         public int LengthB { get; set; }
 
         /// <summary>
-        /// 包类型（请求689，回复690）
+        /// 包类型（请求689，回复690） or  (0x2b1,0x2b2)
         /// </summary>
         public int Type { get; set; }
 
