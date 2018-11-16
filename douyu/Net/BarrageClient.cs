@@ -47,7 +47,7 @@ namespace Douyu.Net
 
             Send(new LoginRequest());
             loginTcs = new TaskCompletionSource<object>();
-            LoginResponseHandler = (message) => loginTcs.SetResult(true);
+            LoginResponseHandler = (message) => loginTcs.SetResult(message);
             WaitImpl(loginTcs.Task, LoginTimeout);
             m_timer.Change(0, KeepAliveTimeout);
             return this;

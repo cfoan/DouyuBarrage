@@ -330,7 +330,7 @@ namespace Douyu.Net
     /// <summary>
     /// 发送异步对象
     /// </summary>
-    internal class SendAsyncState
+    class SendAsyncState
     {
         public Socket Socket { get; set; }
 

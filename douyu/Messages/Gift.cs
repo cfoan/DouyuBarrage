@@ -151,7 +151,7 @@
                 case "268":
                     return "发财";
                 case "338":
-                    return "草莓蛋糕";//100鱼丸
+                    return "草莓蛋糕（100鱼丸）";//100鱼丸
                 case "339":
                     return "新手之剑";//￥0.1
                 case "340":
@@ -176,6 +176,14 @@
                     return "怂";
                 case "713":
                     return "辣眼睛";
+                case "1005":
+                    return "超级火箭（2000鱼翅）";
+                case "1010":
+                    return "鲁班火箭";
+                case "1601":
+                    return "车票（6鱼翅）";
+                case "1859":
+                    return "小飞碟（1鱼翅）";
                 default:
                     return GiftNameUnknown;
             }

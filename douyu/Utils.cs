@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
@@ -8,11 +9,12 @@ namespace Douyu
 {
     public class Utils
     {
-        private const string RegexRoomId = "\"room_id\":(\\d*),";
-        private const string RegexRoomId2 = "\"online_id\":\"(\\d*)\",";
-        private const string RegexRoomId3 = "onlineid=(\\d*)";
+        private const string RegexRoomId = "\"room_id\":(\\d*),"; //onlineid=1984847
 
-        private const string REGEX_SERVER = "%7B%22ip%22%3A%22(.*?)%22%2C%22port%22%3A%22(.*?)%22%7D%2C";
+        private const string RegexRoomId2 = "online_id=\"(\\d*)\"";
+        private const string RegexRoomId3 = "room_id = (\\d*)";//room_id =
+        private const string RegexRoomId4 = "\"roomId\":\"(\\d*)\"";        //"roomId":"5071007"
+        private const string RegexRoomId5 = "onlineid=(\\d*)";
 
         //webGetRoom :http://www.douyu.com/specific/webMGetRoom/{roomId}
         //isRecording: http://www.douyu.com/swf_api/getRoomRecordStatus/
@@ -51,24 +53,14 @@ namespace Douyu
 
         public static string GetRoomId2(Uri uri)
         {
-            string ip = null;
             WebRequest request = WebRequest.Create(uri);
 
             using (var sr = new StreamReader(request.GetResponse().GetResponseStream()))
             {
                 var response = sr.ReadToEnd();
-                Regex regexIp = new Regex(REGEX_SERVER, RegexOptions.IgnoreCase);
-
-                
-                var match = regexIp.Match(response);
-
-                if (match.Success && match.Groups.Count > 1)
-                {
-                    ip= match.Groups[1].Value;
-                }
 
                 Regex regex = new Regex(RegexRoomId, RegexOptions.IgnoreCase);
-                match = regex.Match(response);
+                var match = regex.Match(response);
                 if (match.Success&& match.Groups.Count>1)
                 {
                     return match.Groups[1].Value;
@@ -87,20 +79,42 @@ namespace Douyu
                 {
                     return match.Groups[1].Value;
                 }
+
+                Regex regex4 = new Regex(RegexRoomId4, RegexOptions.IgnoreCase);
+                match = regex4.Match(response);
+                if (match.Success && match.Groups.Count > 1)
+                {
+                    return match.Groups[1].Value;
+                }
+
+                Regex regex5= new Regex(RegexRoomId5, RegexOptions.IgnoreCase);
+                match = regex5.Match(response);
+                if (match.Success && match.Groups.Count > 1)
+                {
+                    return match.Groups[1].Value;
+                }
             }
             return "";
         }
 
-        //public string getServerIp()
+        //const string RegexGiftId = "giftid=\"(\\d*)\"";
+        //const string RegexGiftname = "giftname=\"(\\d*)\"";
+        //public static void GetGift(Uri uri)
         //{
+        //    WebRequest request = WebRequest.Create(uri);
+        //    Dictionary<string, string> dic = new Dictionary<string, string>();
+        //    using (var sr = new StreamReader(request.GetResponse().GetResponseStream()))
+        //    {
+        //        var response = sr.ReadToEnd();
 
+        //        Regex regex = new Regex(RegexGiftId, RegexOptions.IgnoreCase);
+        //        var match = regex.Match(response);
+        //        if (match.Success && match.Groups.Count > 1)
+        //        {
+        //            System.Console.WriteLine(match.Groups[1].Value);
+        //        }
+        //    }
         //}
-
-
-        public static void GetRoom()
-        {
-            throw new NotSupportedException();
-        }
 
         private static string logPath = AppDomain.CurrentDomain.BaseDirectory + "\\log.txt";
         private static volatile StringBuilder sb = new StringBuilder();

@@ -15,6 +15,7 @@ namespace Douyu
              * https://www.douyu.com/chenyifaer 陈一发儿
              * https://www.douyu.com/wt55kai 卢本伟五五开White
              * https://www.douyu.com/chenyifaer|https://www.douyu.com/wt55kai
+             * https://www.douyu.com/t/KPL|https://www.douyu.com/606118
              * 67373|138286
              * */
             System.Console.WriteLine("接下来要做什么(输入对应的数字) \r\n1.输入房间号进入房间\r\n2.输入url进入房间 \r\n3.exit");
@@ -55,7 +56,7 @@ namespace Douyu
                                 var t = Utils.GetRoomId2(new Uri(url));
                                 if (string.IsNullOrWhiteSpace(t))
                                 {
-                                    System.Console.WriteLine("获取房间号失败");
+                                    System.Console.WriteLine($"获取房间号失败,url:{url}");
                                     continue;
                                 }
                                 roomIds.Add(t);
