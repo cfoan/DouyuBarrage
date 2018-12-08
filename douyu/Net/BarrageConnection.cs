@@ -65,10 +65,10 @@ namespace Douyu.Net
             {
                 foreach (var port in DouyuPorts)
                 {
+                    Socket tmp = null;
                     try
                     {
-                        var tmp = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-
+                        tmp = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                         var asyncState = tmp.BeginConnect(new IPEndPoint(ip, port), null, null);
 
                         if (asyncState.AsyncWaitHandle.WaitOne(ConnectTimeOut, true))
@@ -90,15 +90,16 @@ namespace Douyu.Net
                         {
                             tmp.Close();
                             tmp.Dispose();
-                            throw new TimeoutException("Unable to connect to endpoint");
                         }
 
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
-                        /**
-                         * do nothing
-                         * */
+                        if (tmp != null && !tmp.Connected)
+                        {
+                            tmp.Close();
+                            tmp.Dispose();
+                        }
                     }
                 }
                 if (m_isConnected) { break; }
