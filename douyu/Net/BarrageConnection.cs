@@ -27,7 +27,7 @@ namespace Douyu.Net
         private const int SendBufferSize = 4096;
         private const byte PacketSplitor = 0x0;
 
-        private const int ConnectTimeOut = 5000;
+        private const int ConnectTimeOut = 100;
         private const string DouyuDomain = "openbarrage.douyutv.com";//"danmu.douyutv.com"
         private readonly int[] DouyuPorts = new int[] { 8061, 8062, 12601, 12602 };
         
@@ -65,10 +65,10 @@ namespace Douyu.Net
             {
                 foreach (var port in DouyuPorts)
                 {
+                    Socket tmp = null;
                     try
                     {
-                        var tmp = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-
+                        tmp = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                         var asyncState = tmp.BeginConnect(new IPEndPoint(ip, port), null, null);
 
                         if (asyncState.AsyncWaitHandle.WaitOne(ConnectTimeOut, true))
@@ -90,15 +90,16 @@ namespace Douyu.Net
                         {
                             tmp.Close();
                             tmp.Dispose();
-                            throw new TimeoutException("Unable to connect to endpoint");
                         }
 
                     }
                     catch (Exception ex)
                     {
-                        /**
-                         * do nothing
-                         * */
+                        if (tmp != null)
+                        {
+                            tmp.Close();
+                            tmp.Dispose();
+                        }
                     }
                 }
                 if (m_isConnected) { break; }
