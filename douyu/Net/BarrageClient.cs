@@ -14,15 +14,17 @@ namespace Douyu.Net
         private const int LoginTimeout = 5000;
         private const int KeepAliveTimeout = 45 * 1000;
 
-        private Timer m_timer;
-        private object m_locker;
-        private string m_curRoomId;
+        private readonly Timer m_timer;
+        private readonly object m_locker;
+        private readonly BarrageConnection m_client;
+        private readonly ConcurrentDictionary<string, List<Action<AbstractDouyuMessage>>> m_TypeToHandler;
+
+        private string m_roomId;
         private TaskCompletionSource<object> loginTcs;
         private Action m_connectHandler;
         private Action m_disconnectHandler;
 
-        private readonly BarrageConnection m_client;
-        private readonly ConcurrentDictionary<string, List<Action<AbstractDouyuMessage>>> m_TypeToHandler;
+        
         
         public BarrageClient()
         {
@@ -33,11 +35,12 @@ namespace Douyu.Net
             m_client.OnDataArrive += m_client_OnDataArrive;
             m_client.OnConnectToServer += m_client_OnConnectToServer;
             m_client.OnDisconnectFromServer += m_client_OnDisconnectFromServer;
-            
-            AddHandler((message) => LoginResponseHandler?.Invoke((LoginResponse)message), BarrageConstants.TYPE_LOGIN_RESPONSE);
+
+
+            Handle(BarrageConstants.TYPE_LOGIN_RESPONSE).Add((message) => LoginResponseHandler?.Invoke((LoginResponse)message));
         }
 
-        public string RoomId { get { return m_curRoomId; } }
+        public string RoomId { get { return m_roomId; } }
 
         Action<LoginResponse> LoginResponseHandler { get; set; }
 
@@ -60,7 +63,7 @@ namespace Douyu.Net
 #if DEBUG
             System.Console.WriteLine("try enter room {0}...", roomId);
 #endif
-            m_curRoomId = roomId;
+            m_roomId = roomId;
             JoinGroup joinGroup = new JoinGroup();
             joinGroup.gid = groupId;
             joinGroup.rid = roomId;
@@ -70,14 +73,18 @@ namespace Douyu.Net
 
         private void Heatbeat(object sender)
         {
-            var keepAlive = new Keepalive();
-            keepAlive.tick=(Utils.CurrentTimestampUtc() / 1000).ToString();//取的秒数
+            var keepAlive = new Keepalive()
+            {
+                tick = (Utils.CurrentTimestampUtc() / 1000).ToString() //取的秒数
+            };
             Send(keepAlive);
         }
 
         public void Stop()
         {
             m_client.Close();
+            m_timer.Change(Timeout.Infinite, Timeout.Infinite);
+            m_timer.Dispose();
         }
 
         public BarrageClient ConnectHandler(Action handler)
@@ -115,7 +122,7 @@ namespace Douyu.Net
 
                  if (m_TypeToHandler.TryGetValue(message.type, out handlers))
                  {
-                     handlers.ForEach((handler) =>
+                     handlers?.ForEach((handler) =>
                      {
                          handler(message);
                      });
@@ -143,6 +150,28 @@ namespace Douyu.Net
             }
             return this;
         }
+
+        public List<Action<AbstractDouyuMessage>> Handle(string type)
+        {
+            if (string.IsNullOrWhiteSpace(type))
+            {
+                throw new ArgumentNullException("type");
+            }
+            lock (m_locker)
+            {
+                List<Action<AbstractDouyuMessage>> handlers = null;
+                m_TypeToHandler.TryGetValue(type, out handlers);
+                if (handlers == null)
+                {
+                    handlers = new List<Action<AbstractDouyuMessage>>();
+                    m_TypeToHandler[type] = handlers;
+                }
+                return handlers;
+
+            }
+        }
+
+
 
         public BarrageClient AddHandler(Action<AbstractDouyuMessage> handler,params string[] barrageTypeNames)
         {

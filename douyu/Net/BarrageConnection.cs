@@ -3,11 +3,6 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading.Tasks;
-using System.Timers;
-using System.Linq;
-using Douyu.Messages;
-using System.Collections.Concurrent;
 using System.Threading;
 
 namespace Douyu.Net
