@@ -22,7 +22,7 @@ namespace Douyu.Net
         private const int SendBufferSize = 4096;
         private const byte PacketSplitor = 0x0;
 
-        private const int ConnectTimeOut = 100;
+        private const int ConnectTimeOut = 2000;
         private const string DouyuDomain = "openbarrage.douyutv.com";//"danmu.douyutv.com"
         private readonly int[] DouyuPorts = new int[] { 8061, 8062, 12601, 12602 };
         

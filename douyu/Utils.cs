@@ -16,6 +16,11 @@ namespace Douyu
         private const string RegexRoomId4 = "\"roomId\":\"(\\d*)\"";        //"roomId":"5071007"
         private const string RegexRoomId5 = "onlineid=(\\d*)";
 
+        private const string RegexRoomId7 = "ROOM.room_id =(\\d*)";
+
+        private const string RegexRoomId6 = "<link rel=\"canonical\" href=\"https://www.douyu.com/(\\d*)\"/>";
+        
+
         //webGetRoom :http://www.douyu.com/specific/webMGetRoom/{roomId}
         //isRecording: http://www.douyu.com/swf_api/getRoomRecordStatus/
         /// <summary>
@@ -41,7 +46,7 @@ namespace Douyu
                 var response=sr.ReadToEnd();
                 var index0 = response.IndexOf("var $ROOM");
                 var index1 = response.IndexOf(":", index0);
-                var index2 = response.IndexOf(",", index1);
+                var index2 = response.IndexOfAny(new char[] { ',', ';' }, index1);
                 var count = index2 - index1 - 1;
                 if (count > 0 && index1 + 1 + count <= response.Length)
                 {
@@ -58,6 +63,7 @@ namespace Douyu
             using (var sr = new StreamReader(request.GetResponse().GetResponseStream()))
             {
                 var response = sr.ReadToEnd();
+
 
                 Regex regex = new Regex(RegexRoomId, RegexOptions.IgnoreCase);
                 var match = regex.Match(response);
@@ -89,6 +95,13 @@ namespace Douyu
 
                 Regex regex5= new Regex(RegexRoomId5, RegexOptions.IgnoreCase);
                 match = regex5.Match(response);
+                if (match.Success && match.Groups.Count > 1)
+                {
+                    return match.Groups[1].Value;
+                }
+
+                Regex regex6 = new Regex(RegexRoomId6, RegexOptions.IgnoreCase);
+                match = regex6.Match(response);
                 if (match.Success && match.Groups.Count > 1)
                 {
                     return match.Groups[1].Value;
