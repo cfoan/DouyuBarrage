@@ -9,6 +9,9 @@ namespace Douyu
     /// </summary>
     public class BarrageConsole
     {
+
+        public static Func<string, string> GiftNameResolver { get; set; } = (x) => GiftUtil.GiftName(x);
+
         /// <summary>
         /// 控制台打印，如果传入的参数为null,则不打印
         /// </summary>
@@ -44,7 +47,7 @@ namespace Douyu
             System.Console.Write(sb.ToString());
         }
 
-        private static string MessageToString(AbstractDouyuMessage douyuMessage)
+        internal static string MessageToString(AbstractDouyuMessage douyuMessage)
         {
             switch (douyuMessage.type)
             {
@@ -52,7 +55,7 @@ namespace Douyu
                     return $"[弹幕]{((Barrage)douyuMessage).nn}:{((Barrage)douyuMessage).txt}";
                 case BarrageConstants.TYPE_GIFT:
                     var gift = douyuMessage as Gift;
-                    var name = GiftUtil.GiftName(gift.gfid);
+                    var name = GiftNameResolver(gift.gfid);
                     return $"[礼物]来自{gift.nn} [{name}] {(gift.hits == null ? "" : $"{gift.hits}连击")}";
                 case BarrageConstants.TYPE_SUPER_BARRAGE:
                     return $"[超级弹幕]{((SuperBarrage)douyuMessage).content}";

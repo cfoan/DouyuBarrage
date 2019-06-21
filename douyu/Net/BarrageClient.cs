@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -13,56 +14,67 @@ namespace Douyu.Net
     {
         private const int LoginTimeout = 5000;
         private const int KeepAliveTimeout = 45 * 1000;
+        private const int MillisecondPerTick = 5 * 1000;
 
         private readonly Timer m_timer;
         private readonly object m_locker;
         private readonly BarrageConnection m_client;
         private readonly ConcurrentDictionary<string, List<Action<AbstractDouyuMessage>>> m_TypeToHandler;
 
+        private int m_tick = 0;
         private string m_roomId;
-        private TaskCompletionSource<object> loginTcs;
-        private Action m_connectHandler;
-        private Action m_disconnectHandler;
+        private bool closed = false;
+        private TaskCompletionSource<LoginResponse> m_login;
 
-        
-        
-        public BarrageClient()
+        public BarrageClient(string roomId)
         {
             m_locker = new object();
-            m_timer = new Timer(Heatbeat, null, Timeout.Infinite, Timeout.Infinite);
+            m_timer = new Timer(HeatbeatOrReconnect, null, Timeout.Infinite, Timeout.Infinite);
             m_TypeToHandler = new ConcurrentDictionary<string, List<Action<AbstractDouyuMessage>>>();
             m_client = new BarrageConnection();
             m_client.OnDataArrive += m_client_OnDataArrive;
             m_client.OnConnectToServer += m_client_OnConnectToServer;
             m_client.OnDisconnectFromServer += m_client_OnDisconnectFromServer;
-
-
-            Handle(BarrageConstants.TYPE_LOGIN_RESPONSE).Add((message) => LoginResponseHandler?.Invoke((LoginResponse)message));
+            m_roomId = roomId;
+            Handle(BarrageConstants.TYPE_LOGIN_RESPONSE).Add((message) => m_login?.TrySetResult((LoginResponse)message));
         }
 
-        public string RoomId { get { return m_roomId; } }
-
-        Action<LoginResponse> LoginResponseHandler { get; set; }
+        public string RoomId => m_roomId;
+        public bool Active => m_client.Connected;
 
         public BarrageClient Connect()
         {
-            m_client.ConnectToServer();
+            if (!m_client.Connected)
+            {
+                m_client.ConnectToServer();
 
-            Send(new LoginRequest());
-            loginTcs = new TaskCompletionSource<object>();
-            LoginResponseHandler = (message) => loginTcs.SetResult(message);
-            WaitImpl(loginTcs.Task, LoginTimeout);
-            m_timer.Change(0, KeepAliveTimeout);
+                Send(new LoginRequest());
+                if (m_login == null || m_login.Task.IsCompleted)
+                {
+                    m_login = new TaskCompletionSource<LoginResponse>();
+                }
+                try
+                {
+                    WaitImpl(m_login.Task, LoginTimeout);
+                }
+                catch (TimeoutException)
+                {
+                    m_client.Disconnect();
+                    throw;
+                }
+                m_timer.Change(0, MillisecondPerTick);
+                EnterRoom(m_roomId);
+            }
             return this;
         }
 
-        public BarrageClient EnterRoom(string roomId, string groupId = "-9999")
+        private BarrageClient EnterRoom(string roomId, string groupId = "-9999")
         {
             if (string.IsNullOrWhiteSpace(roomId))
                 throw new ArgumentNullException("roomId");
-#if DEBUG
-            System.Console.WriteLine("try enter room {0}...", roomId);
-#endif
+
+            Debug.WriteLine($"try enter room {roomId}...");
+
             m_roomId = roomId;
             JoinGroup joinGroup = new JoinGroup();
             joinGroup.gid = groupId;
@@ -71,43 +83,66 @@ namespace Douyu.Net
             return this;
         }
 
-        private void Heatbeat(object sender)
+        private void HeatbeatOrReconnect(object sender)
         {
-            var keepAlive = new Keepalive()
+            if (closed)
             {
-                tick = (Utils.CurrentTimestampUtc() / 1000).ToString() //取的秒数
-            };
-            Send(keepAlive);
+                return;
+            }
+
+            if (this.m_client.Connected)
+            {
+                if (++m_tick >= 9)
+                {
+                    var keepAlive = new Keepalive()
+                    {
+                        tick = (Utils.CurrentTimestampUtc() / 1000).ToString() //取的秒数
+                    };
+                    Send(keepAlive);
+                    m_tick = 0;
+                }
+            }
+            else
+            {
+                Debug.WriteLine("重连");
+                try
+                {
+                    Connect();
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine(ex.Message);
+                }
+            }
         }
 
-        public void Stop()
+        public void Close()
         {
-            m_client.Close();
-            m_timer.Change(Timeout.Infinite, Timeout.Infinite);
-            m_timer.Dispose();
-        }
-
-        public BarrageClient ConnectHandler(Action handler)
-        {
-            m_connectHandler = handler;
-            return this;
-        }
-
-        public BarrageClient DisconnectHandler(Action handler)
-        {
-            m_disconnectHandler = handler;
-            return this;
+            lock (this)
+            {
+                if (!closed)
+                {
+                    closed = true;
+                    if (m_client != null)
+                    {
+                        m_client.OnDataArrive -= m_client_OnDataArrive;
+                        m_client.OnConnectToServer -= m_client_OnConnectToServer;
+                        m_client.OnDisconnectFromServer -= m_client_OnDisconnectFromServer;
+                        m_client.Disconnect();
+                    }
+                    m_timer.Change(Timeout.Infinite, Timeout.Infinite);
+                    m_timer.Dispose();
+                }
+            }
         }
 
         private void m_client_OnDisconnectFromServer()
         {
-            m_timer.Change(Timeout.Infinite, Timeout.Infinite);
-            m_disconnectHandler?.Invoke();
+            
         }
 
         private void m_client_OnConnectToServer()
         {
-            m_connectHandler?.Invoke();
         }
 
         private void m_client_OnDataArrive(Packet[] packets)
@@ -129,7 +164,6 @@ namespace Douyu.Net
                  }
              });
         }
-
 
         public BarrageClient AddHandler(Action<AbstractDouyuMessage> handler, string type)
         {
@@ -171,8 +205,6 @@ namespace Douyu.Net
             }
         }
 
-
-
         public BarrageClient AddHandler(Action<AbstractDouyuMessage> handler,params string[] barrageTypeNames)
         {
             Array.ForEach(barrageTypeNames, (typeName) =>
@@ -197,15 +229,13 @@ namespace Douyu.Net
 
         internal void Send(AbstractDouyuMessage message)
         {
-            if (!m_client.Connected)
+            if (m_client.Connected)
             {
-                throw new BarrageClientNotConnectedToServerException();
+                m_client.Send(Converters.Instance.Encode(message));
             }
-
-            m_client.Send(Converters.Instance.Encode(message));
         }
 
-        internal static object WaitImpl(Task<object> task, int timeout)
+        internal static object WaitImpl<T>(Task<T> task, int timeout)
         {
             if (task.IsFaulted)
             {
@@ -231,7 +261,5 @@ namespace Douyu.Net
             }
             return task.Result;
         }
-
-        public class BarrageClientNotConnectedToServerException : Exception { }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -45,6 +46,7 @@ namespace Douyu.Net
         public BarrageConnection ConnectToServer()
         {
             if (m_isConnected) { return this; }
+            m_socket?.Dispose();
             var ips = new IPAddress[0];
             try
             {
@@ -53,9 +55,10 @@ namespace Douyu.Net
             catch (Exception ex)
             {
 #if DEBUG
-                System.Console.WriteLine(ex.StackTrace);
+                Debug.WriteLine(ex.StackTrace);
 #endif
             }
+            
             foreach (var ip in ips)
             {
                 foreach (var port in DouyuPorts)
@@ -108,7 +111,7 @@ namespace Douyu.Net
         /// <summary>
         /// 停止接收弹幕服务器消息
         /// </summary>
-        public void Close()
+        public void Disconnect()
         {
             if (m_socket != null)
             {
@@ -174,7 +177,7 @@ namespace Douyu.Net
                 }
                 else if (bytesTransferredThisTime <= 0)
                 {
-                    Close();
+                    Disconnect();
                 }
             }
             catch (ObjectDisposedException)
@@ -188,7 +191,7 @@ namespace Douyu.Net
 #if DEBUG
                 System.Console.WriteLine($"{ex.Message},{ex.StackTrace}");
 #endif
-                Close();
+                Disconnect();
             }
         }
 
@@ -242,7 +245,7 @@ namespace Douyu.Net
             }
             catch (Exception ex)
             {
-                Close();
+                Disconnect();
 #if DEBUG
                 System.Console.WriteLine(ex.Message);
 #endif

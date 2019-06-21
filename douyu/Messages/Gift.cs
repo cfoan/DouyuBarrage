@@ -1,4 +1,6 @@
-﻿namespace Douyu.Messages
+﻿using System.Collections.Generic;
+
+namespace Douyu.Messages
 {
     /// <summary>
     /// 赠送礼物消息
@@ -129,9 +131,27 @@
     {
         //todo 网页抓取当前页面的礼物信息
         internal const string GiftNameUnknown = "unknown";
+        static Dictionary<string, string> giftNameMapper = new Dictionary<string, string>();
+
+        static GiftUtil()
+        {
+            giftNameMapper["20002"] = "办卡";
+            giftNameMapper["824"] = "粉丝荧光棒";
+            giftNameMapper["1855"] = "星空棒棒糖";
+            giftNameMapper["2079"] = "车辆通行证";
+            giftNameMapper["2141"] = "小幸运";
+            giftNameMapper["2095"] = "幸运水晶";
+            giftNameMapper["2096"] = "幸运钥匙";
+            giftNameMapper["2097"] = "幸运戒指";
+        }
 
         public static string GiftName(string id)
         {
+            giftNameMapper.TryGetValue(id,out string name);
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                return name;
+            }
             switch (id)
             {
                 case "124":
@@ -139,7 +159,7 @@
                 case "191":
                     return "100鱼丸";
                 case "192":
-                    return "赞";
+                    return "赞";//20006
                 case "193":
                     return "弱鸡";
                 case "194":
@@ -184,6 +204,9 @@
                     return "车票（6鱼翅）";
                 case "1859":
                     return "小飞碟（1鱼翅）";
+
+                case "20002":
+                    return "办卡";
                 default:
                     return GiftNameUnknown;
             }

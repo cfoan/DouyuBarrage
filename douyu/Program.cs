@@ -14,6 +14,7 @@ namespace Douyu
             /**
              * https://www.douyu.com/chenyifaer 陈一发儿
              * https://www.douyu.com/wt55kai 卢本伟五五开White
+             * https://www.douyu.com/101 PDD
              * https://www.douyu.com/chenyifaer|https://www.douyu.com/wt55kai
              * https://www.douyu.com/t/KPL|https://www.douyu.com/606118
              * 67373|138286
@@ -79,17 +80,16 @@ namespace Douyu
 
                 roomIds.ForEach((roomId) =>
                 {
-                    var client = new BarrageClient();
-                    client.Connect()
-                        .AddHandler((message) => BarrageConsole.PrintBarrage(message), new string[] { BarrageConstants.TYPE_SUPER_BARRAGE, BarrageConstants.TYPE_GIFT, BarrageConstants.TYPE_BARRAGE })
-                        .EnterRoom(roomId);
+                    var client = new BarrageClient(roomId);
+                    client.AddHandler((message) => BarrageConsole.PrintBarrage(message), new string[] { BarrageConstants.TYPE_SUPER_BARRAGE, BarrageConstants.TYPE_GIFT, BarrageConstants.TYPE_BARRAGE });
+                    client.Connect();
                     clients.Add(client);
                 });
             }
             System.Console.ReadKey();
             clients.ForEach((client) =>
             {
-                client.Stop();
+                client.Close();
             });
 
         }
